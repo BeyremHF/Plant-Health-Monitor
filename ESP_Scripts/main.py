@@ -30,15 +30,15 @@ def connect_wifi():
     set_led(0, 0, 0)
     return wlan
 
-# Sensors setup
+# Hardware setup
 i2c = machine.I2C(0, sda=machine.Pin(8), scl=machine.Pin(9))
 bme = bme280.BME280(i2c=i2c)
-
 adc = machine.ADC(machine.Pin(1))
 adc.atten(machine.ADC.ATTN_11DB)
+relay = machine.Pin(2, machine.Pin.OUT)
+
 DRY = 2650
 WET = 950
-
 FIREBASE_URL = "https://plant-health-monitor-esp32-default-rtdb.europe-west1.firebasedatabase.app"
 
 # Connect
@@ -47,7 +47,6 @@ wlan = connect_wifi()
 # Main loop
 while True:
     try:
-        # Reconnect if disconnected
         if not wlan.isconnected():
             set_led(255, 0, 0)
             wlan = connect_wifi()
@@ -63,7 +62,7 @@ while True:
         moisture = (DRY - raw) / (DRY - WET) * 100
         moisture = max(0, min(100, moisture))
 
-        # Build data
+        # Send sensor data
         data = {
             "temperature": float(bme.values[0].replace("C", "")),
             "humidity": float(bme.values[2].replace("%", "")),
@@ -72,7 +71,6 @@ while True:
             "soil_moisture": round(moisture, 1)
         }
 
-        # Send to Firebase
         set_led(0, 0, 255)
         response = urequests.put(
             FIREBASE_URL + "/sensors.json",
@@ -80,11 +78,18 @@ while True:
         )
         response.close()
         set_led(0, 0, 0)
-
         print("Sent:", data)
 
+        # Check pump trigger
+        pump_response = urequests.get(FIREBASE_URL + "/pump/trigger.json")
+        if pump_response.text == "true":
+            relay.value(1)
+            time.sleep(1)
+            relay.value(0)
+            urequests.put(FIREBASE_URL + "/pump/trigger.json", data="false")
+        pump_response.close()
+
     except Exception as e:
-        # Orange flash = error
         set_led(255, 80, 0)
         time.sleep(2)
         set_led(0, 0, 0)

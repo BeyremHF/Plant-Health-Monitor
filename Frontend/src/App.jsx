@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { database } from "./firebase";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, set } from "firebase/database";
 
 function App() {
   const [sensors, setSensors] = useState(null);
@@ -12,6 +12,10 @@ function App() {
     });
   }, []);
 
+  const triggerPump = () => {
+    set(ref(database, "pump/trigger"), true);
+  };
+
   if (!sensors) return <p>Loading...</p>;
 
   return (
@@ -22,6 +26,7 @@ function App() {
       <p>🔵 Pressure: {sensors.pressure} hPa</p>
       <p>☀️ Light: {sensors.light} lux</p>
       <p>🌱 Soil Moisture: {sensors.soil_moisture}%</p>
+      <button onClick={triggerPump}>💧 Water Now</button>
     </div>
   );
 }
