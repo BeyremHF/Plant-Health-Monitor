@@ -1,111 +1,115 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/* ------------------------------------------------------------------
+   Base & theme tokens
+   Two themes via [data-theme="light"|"dark"] on <html>.
+   Light mode is unchanged from before. Dark mode uses the warm-near-black
+   + warm-gray-card palette from the prototype (NOT the over-dark
+   slate/black-on-black that wasn't readable).
+------------------------------------------------------------------- */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+:root,
+:root[data-theme="light"] {
+  /* Surfaces */
+  --bg:           #f3ede0;   /* warm cream page */
+  --surface:      #faf6ea;   /* outer cards */
+  --surface-2:    #ece4cf;   /* inner sensor mini-cards */
+  --surface-hover:#ebe3cc;
+  --border:       #d9cfb6;
+  --border-soft:  #e3dac4;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
+  /* Text */
+  --text:         #2b2a23;
+  --text-muted:   #6f6757;
+  --text-dim:     #948b78;
+
+  /* Brand / status */
+  --green:        #4f8a3a;
+  --green-bg:     #d9ecbf;
+  --green-on-bg:  #3f6e2c;
+
+  /* BMO mascot (mint, same in both themes) */
+  --bmo-body:     #c0eada;
+  --bmo-face:     #8cd2b3;
+  --bmo-line:     #5fb595;
+
+  /* Actions */
+  --water-bg:     #cbe0f5;
+  --water-fg:     #2462a8;
+  --water-fill:   #d8e8f5;
+
+  --light-bg:     #f4dfb1;
+  --light-fg:     #a25b16;
+  --light-fill:   #f7e5c1;
+
+  /* Alerts */
+  --warn:         #b14a2e;
+  --warn-bg:      #f4d49a;
+  --warn-on-bg:   #8d4014;
+
+  /* Misc accents */
+  --pink-dot:     #de5d92;
+  --green-dot:    #4f8a3a;
+
+  /* Type scale (driven by container) */
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg:           #141512;
+  --surface:      #2c2c2a;   /* outer card */
+  --surface-2:    #232321;   /* inner sensor mini-card */
+  --surface-hover:#34342f;
+  --border:       #3a3a37;
+  --border-soft:  #2a2a28;
+
+  --text:         #f1ede1;
+  --text-muted:   #a39e8e;
+  --text-dim:     #76705f;
+
+  --green:        #7cc05a;
+  --green-bg:     #eaf3de;   /* light pill bg even in dark mode */
+  --green-on-bg:  #3b6d11;
+
+  --bmo-body:     #c0eada;
+  --bmo-face:     #8cd2b3;
+  --bmo-line:     #5fb595;
+
+  --water-bg:     #e2ecf8;
+  --water-fg:     #2462a8;
+  --water-fill:   #2a3a4c;   /* fill area under chart in dark */
+
+  --light-bg:     #f7e1bd;
+  --light-fg:     #a25b16;
+  --light-fill:   #3b3328;
+
+  --warn:         #e07a55;
+  --warn-bg:      #f4d49a;
+  --warn-on-bg:   #8d4014;
+
+  --pink-dot:     #e36da2;
+  --green-dot:    #7cc05a;
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
   background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  text-rendering: optimizeLegibility;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+#root { min-height: 100svh; }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
+button { font: inherit; cursor: pointer; }
 
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+/* Scrollbar (subtle) */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
