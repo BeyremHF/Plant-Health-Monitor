@@ -33,6 +33,7 @@ const PLANTS = [
 
 const DEFAULT_PLANT_SETTINGS = {
   name:          null,
+  dotColor:      null,
   thresholds:    { moistureMin: 20, tempMin: 10, tempMax: 32, lightMin: 100 },
   waterDuration: 3,
   graphs:        { moisture: true, temperature: true, humidity: false, light: false },
@@ -250,6 +251,7 @@ export default function App() {
     theme, setTheme,
     enlargedChart, setEnlargedChart,
     goToChart,
+    plantSettings,
   };
 
   return (
@@ -291,9 +293,12 @@ function DesktopShell(p) {
           <div className="plants-label">Plants</div>
           {PLANTS.map(pl => {
             const name = (p.plantSettings?.[pl.id]?.name) || pl.defaultLabel;
+            const customColor = p.plantSettings?.[pl.id]?.dotColor;
             return (
               <button key={pl.id} className={"plant-item"+(activePlant===pl.id?" active":"")} onClick={()=>setActivePlant(pl.id)}>
-                <span className={"plant-dot "+pl.dot}/>{name}
+                <span className={"plant-dot"+(customColor ? "" : " "+pl.dot)}
+                      style={customColor ? { background: customColor } : {}}/>
+                {name}
               </button>
             );
           })}
@@ -328,7 +333,13 @@ const GRAPH_DEFS = [
 function OverviewTab(p) {
   const { sensors, notifications, mood, memHistory, ps, updatePS, triggerPump, triggerLight, updated, activePlantLabel, goToChart } = p;
   const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
-  const gridCols = activeGraphs.map(()=>"1fr").join(" ") + " 220px";
+  const controlsCol = {
+    1: "minmax(200px, 36%)",
+    2: "minmax(185px, 30%)",
+    3: "minmax(165px, 24%)",
+    4: "minmax(155px, 20%)",
+  }[activeGraphs.length] ?? "minmax(165px, 24%)";
+  const gridCols = activeGraphs.map(()=>"1fr").join(" ") + " " + controlsCol;
 
   return (
     <div className="overview-wrap">
@@ -379,10 +390,12 @@ function OverviewTab(p) {
           <div key={g.key} className="card chart-card chart-card--clickable" onClick={()=>goToChart(g.key)} title="Click to enlarge">
             <div className="chart-head">
               <div className="chart-title">{g.label}</div>
-              <div className="chart-pill-row">
-                <div className="chart-pill">Last 24 readings</div>
-                <span className="chart-expand-icon">{I.expand}</span>
-              </div>
+              {activeGraphs.length < 3 && (
+                <div className="chart-pill-row">
+                  <div className="chart-pill">Last 24 readings</div>
+                  <span className="chart-expand-icon">{I.expand}</span>
+                </div>
+              )}
             </div>
             <Sparkline data={memHistory[g.dataKey]} accent={g.accent} fill={g.fill}/>
           </div>
@@ -507,6 +520,14 @@ function SettingsTab(p) {
     { key:"humidity", label:"Humidity" }, { key:"light",       label:"Light"       },
   ];
 
+  const DOT_COLORS = [
+    "#4f8a3a","#7cc05a","#de5d92","#e36da2",
+    "#2462a8","#7abcf5","#d4620f","#e0b060",
+    "#7c4bb5","#1a8a7a",
+  ];
+
+  const activeDot = ps.dotColor || null;
+
   return (
     <>
       <div className="main-header">
@@ -531,6 +552,22 @@ function SettingsTab(p) {
               onBlur={() => updatePS("name", nameInput || null)}
               placeholder="e.g. Basil 1"
             />
+          </div>
+          <div className="setting-row">
+            <div className="setting-row-head">
+              <span className="setting-row-label">Dot color</span>
+            </div>
+            <div className="color-palette">
+              {DOT_COLORS.map(hex => (
+                <button
+                  key={hex}
+                  className={"color-swatch" + (activeDot === hex ? " active" : "")}
+                  style={{ background: hex }}
+                  onClick={() => updatePS("dotColor", activeDot === hex ? null : hex)}
+                  title={hex}
+                />
+              ))}
+            </div>
           </div>
           <div className="settings-section-sub" style={{marginTop:8}}>Overview graphs</div>
           <div className="graph-toggles">
@@ -607,8 +644,9 @@ function SettingSlider({ icon, label, suffix, min, max, step, value, onChange })
    Mobile shell
    ══════════════════════════════════════════════════════════════ */
 function MobileShell(p) {
-  const { sensors, notifications, mood, memHistory, triggerPump, triggerLight, updated, activePlantLabel, theme, setTheme, goToChart } = p;
+  const { sensors, notifications, mood, memHistory, ps, triggerPump, triggerLight, updated, activePlantLabel, theme, setTheme, goToChart } = p;
   const [tab, setTab] = useState("overview");
+  const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
 
   return (
     <div className="shell-mobile">
@@ -625,7 +663,7 @@ function MobileShell(p) {
               <span className="mobile-updated">{updated.replace("Updated ","")}</span>
             </div>
             <div className="card mobile-status-card">
-              <BMO mood={mood} size={64}/>
+              <BMO mood={mood}/>
               <div className="mobile-status-text">
                 <div className={"status-value"+(notifications.length?" warn":"")}>{notifications.length===0?"Healthy":"Needs attention"}</div>
                 <div className="status-updated">{notifications[0]?.msg ?? "All readings normal"}</div>
@@ -639,13 +677,15 @@ function MobileShell(p) {
                 </div>
               ))}
             </div>
-            <div className="card chart-card mobile-chart-card chart-card--clickable" onClick={()=>{goToChart("moisture");setTab("history");}}>
-              <div className="chart-head">
-                <div className="chart-title">Moisture</div>
-                <div className="chart-pill">1 day</div>
+            {activeGraphs.map(g => (
+              <div key={g.key} className="card chart-card mobile-chart-card chart-card--clickable" onClick={()=>{goToChart(g.key);setTab("history");}}>
+                <div className="chart-head">
+                  <div className="chart-title">{g.label}</div>
+                  <div className="chart-pill">Last 24</div>
+                </div>
+                <Sparkline data={memHistory[g.dataKey]} accent={g.accent} fill={g.fill}/>
               </div>
-              <Sparkline data={memHistory.moisture} accent="var(--bmo-line)" fill="var(--bmo-body)"/>
-            </div>
+            ))}
             <div className="mobile-actions">
               <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
               <button className="btn-light" onClick={triggerLight}>{I.bulb} Light on</button>
