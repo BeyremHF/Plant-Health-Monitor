@@ -23,7 +23,14 @@ const I = {
   alert:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   expand:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>,
   close:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>,
+  gauge:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="M12 12 8 8"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M7 17A7 7 0 0 1 8.5 7M17 17a7 7 0 0 0-1.5-10"/></svg>,
+  vapor:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 22v-6M8 6c0 2 4 3 4 6s-4 4-4 6M16 6c0 2-4 3-4 6s4 4 4 6"/></svg>,
 };
+
+function calcVPD(temp, humidity) {
+  const svp = 0.6108 * Math.exp(17.27 * temp / (temp + 237.3));
+  return Math.max(0, (1 - humidity / 100) * svp);
+}
 
 /* ── Plants ─────────────────────────────────────────────────── */
 const PLANTS = [
@@ -36,7 +43,7 @@ const DEFAULT_PLANT_SETTINGS = {
   dotColor:      null,
   thresholds:    { moistureMin: 20, tempMin: 10, tempMax: 32, lightMin: 100 },
   waterDuration: 3,
-  graphs:        { moisture: true, temperature: true, humidity: false, light: false },
+  graphs:        { moisture: true, temperature: true, humidity: false, light: false, pressure: false, vpd: false },
   timeframe:     "24h",
 };
 
@@ -57,16 +64,18 @@ function getPS(all, id) {
 function BMO({ mood = "happy" }) {
   return (
     <div className="bmo">
-      <svg viewBox="0 0 120 75" width="88%" height="88%" style={{ display: "block", margin: "auto" }}>
-        {/* Screen */}
-        <rect x="10" y="8" width="100" height="58" rx="10" fill="var(--bmo-face)" opacity="0.55"/>
+      <svg viewBox="0 0 120 75" width="100%" height="100%" style={{ display: "block" }}>
+        {/* Outer body */}
+        <rect x="1" y="1" width="118" height="73" rx="10" fill="var(--bmo-body)" stroke="var(--bmo-line)" strokeWidth="2.5"/>
+        {/* Screen — y=8, height=59 → ends at y=67, gap top=8, gap bottom=75-67=8 */}
+        <rect x="10" y="8" width="100" height="59" rx="7" fill="var(--bmo-face)" opacity="0.6"/>
         {/* Eyes */}
         <circle cx="42" cy="32" r="7" fill="var(--bmo-line)"/>
         <circle cx="78" cy="32" r="7" fill="var(--bmo-line)"/>
         {/* Mouth */}
-        {mood === "happy"   && <path d="M38 52 Q60 66 82 52" fill="none" stroke="var(--bmo-line)" strokeWidth="3.5" strokeLinecap="round"/>}
-        {mood === "sad"     && <path d="M38 62 Q60 50 82 62" fill="none" stroke="var(--bmo-line)" strokeWidth="3.5" strokeLinecap="round"/>}
-        {mood === "neutral" && <path d="M38 57 L82 57"        fill="none" stroke="var(--bmo-line)" strokeWidth="3.5" strokeLinecap="round"/>}
+        {mood === "happy"   && <path d="M38 50 Q60 62 82 50" fill="none" stroke="var(--bmo-line)" strokeWidth="3" strokeLinecap="round"/>}
+        {mood === "sad"     && <path d="M38 58 Q60 48 82 58" fill="none" stroke="var(--bmo-line)" strokeWidth="3" strokeLinecap="round"/>}
+        {mood === "neutral" && <path d="M38 54 L82 54"        fill="none" stroke="var(--bmo-line)" strokeWidth="3" strokeLinecap="round"/>}
       </svg>
     </div>
   );
@@ -105,15 +114,15 @@ function getNotifications(sensors, thresholds, reservoirEmpty) {
   if (!sensors) return [];
   const n = [];
   if (reservoirEmpty)
-    n.push({ id:"reservoir", msg:"Reservoir may be empty",   type:"alert" });
+    n.push({ id:"reservoir", msg:"Reservoir may be empty",   type:"alert", icon:"alert" });
   if (sensors.soil_moisture < thresholds.moistureMin)
-    n.push({ id:"dry",       msg:"Soil moisture is too low", type:"warn"  });
+    n.push({ id:"dry",       msg:"Soil moisture is too low", type:"warn",  icon:"drop"  });
   if (sensors.temperature > thresholds.tempMax)
-    n.push({ id:"hot",       msg:"Temperature is too high",  type:"alert" });
+    n.push({ id:"hot",       msg:"Temperature is too high",  type:"alert", icon:"therm" });
   if (sensors.temperature < thresholds.tempMin)
-    n.push({ id:"cold",      msg:"Temperature is too low",   type:"warn"  });
+    n.push({ id:"cold",      msg:"Temperature is too low",   type:"warn",  icon:"therm" });
   if (sensors.light < thresholds.lightMin)
-    n.push({ id:"light",     msg:"Light level is too low",   type:"warn"  });
+    n.push({ id:"light",     msg:"Light level is too low",   type:"warn",  icon:"sun"   });
   return n;
 }
 
@@ -170,7 +179,7 @@ export default function App() {
   const [isMobile,  setIsMobile]  = useState(() => window.matchMedia("(max-width: 720px)").matches);
   const [sensors,   setSensors]   = useState(null);
   const [lastUpdate,setLastUpdate]= useState(null);
-  const [memHistory,setMemHistory]= useState({ moisture:[], temperature:[], humidity:[], light:[] });
+  const [memHistory,setMemHistory]= useState({ moisture:[], temperature:[], humidity:[], light:[], pressure:[], vpd:[] });
   const [fbHistory, setFbHistory] = useState(null);
   const [activePlant,   setActivePlant]   = useState(PLANTS[0].id);
   const [activeNav,     setActiveNav]     = useState("overview");
@@ -213,6 +222,8 @@ export default function App() {
         temperature: [...h.temperature, v.temperature??0 ].slice(-96),
         humidity:    [...h.humidity,    v.humidity??0     ].slice(-96),
         light:       [...h.light,       v.light??0        ].slice(-96),
+        pressure:    [...h.pressure,    v.pressure??0     ].slice(-96),
+        vpd:         [...h.vpd,         calcVPD(v.temperature??20, v.humidity??50)].slice(-96),
       }));
       if (waterPending.current && moistureBefore.current !== null) {
         if (v.soil_moisture > moistureBefore.current + 3) {
@@ -273,7 +284,7 @@ function DesktopShell(p) {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">{I.leaf}</div>
-          <div>
+          <div className="brand-text">
             <div className="brand-title">Plant Monitor</div>
             <div className="brand-sub">Smart plant care system</div>
           </div>
@@ -324,22 +335,29 @@ function DesktopShell(p) {
    Overview tab — no scroll, fits viewport
    ══════════════════════════════════════════════════════════════ */
 const GRAPH_DEFS = [
-  { key:"moisture",    label:"Moisture",    dataKey:"moisture",    accent:"var(--bmo-line)",  fill:"var(--bmo-body)",   unit:"%",   decimals:1 },
-  { key:"temperature", label:"Temperature", dataKey:"temperature", accent:"var(--light-fg)",  fill:"var(--light-bg)",   unit:"°C",  decimals:1 },
-  { key:"humidity",    label:"Humidity",    dataKey:"humidity",    accent:"var(--water-fg)",  fill:"var(--water-fill)", unit:"%",   decimals:1 },
-  { key:"light",       label:"Light",       dataKey:"light",       accent:"#a36b1a",          fill:"var(--light-fill)", unit:"lux", decimals:0 },
+  { key:"moisture",    label:"Moisture",    dataKey:"moisture",    accent:"var(--bmo-line)",  fill:"var(--bmo-body)",      unit:"%",   decimals:1 },
+  { key:"temperature", label:"Temperature", dataKey:"temperature", accent:"var(--light-fg)",  fill:"var(--light-fill)",    unit:"°C",  decimals:1 },
+  { key:"humidity",    label:"Humidity",    dataKey:"humidity",    accent:"var(--water-fg)",  fill:"var(--water-fill)",    unit:"%",   decimals:1 },
+  { key:"light",       label:"Light",       dataKey:"light",       accent:"#a36b1a",          fill:"var(--light-fill)",    unit:"lux", decimals:0 },
+  { key:"pressure",    label:"Pressure",    dataKey:"pressure",    accent:"#7c4bb5",          fill:"var(--pressure-fill)", unit:"hPa", decimals:0 },
+  { key:"vpd",         label:"VPD",         dataKey:"vpd",         accent:"#1a8a7a",          fill:"var(--vpd-fill)",      unit:"kPa", decimals:2 },
 ];
 
 function OverviewTab(p) {
   const { sensors, notifications, mood, memHistory, ps, updatePS, triggerPump, triggerLight, updated, activePlantLabel, goToChart } = p;
   const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
-  const controlsCol = {
-    1: "minmax(200px, 36%)",
-    2: "minmax(185px, 30%)",
-    3: "minmax(165px, 24%)",
-    4: "minmax(155px, 20%)",
-  }[activeGraphs.length] ?? "minmax(165px, 24%)";
-  const gridCols = activeGraphs.map(()=>"1fr").join(" ") + " " + controlsCol;
+  const gridCols = activeGraphs.map(()=>"1fr").join(" ");
+
+  const statusCardRef = useRef(null);
+  const [bmoMaxH, setBmoMaxH] = useState(null);
+  useEffect(() => {
+    if (!statusCardRef.current) return;
+    const update = () => { if (statusCardRef.current) setBmoMaxH(statusCardRef.current.offsetHeight); };
+    const ro = new ResizeObserver(update);
+    ro.observe(statusCardRef.current);
+    update();
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div className="overview-wrap">
@@ -349,7 +367,7 @@ function OverviewTab(p) {
       </div>
 
       <div className="top-row">
-        <div className="card status-card">
+        <div className="card status-card" ref={statusCardRef}>
           <div className="status-head">
             <div>
               <div className="status-label">Plant status</div>
@@ -364,10 +382,12 @@ function OverviewTab(p) {
             <Sensor icon={I.therm} label="Temperature" value={sensors?.temperature}   unit="°C" decimals={1}/>
             <Sensor icon={I.sun}   label="Light"       value={sensors?.light}         unit="lux"/>
             <Sensor icon={I.wind}  label="Humidity"    value={sensors?.humidity}      unit="%" decimals={1}/>
+            <Sensor icon={I.gauge} label="Pressure"    value={sensors?.pressure}      unit="hPa"/>
+            <Sensor icon={I.vapor} label="VPD"         value={sensors ? calcVPD(sensors.temperature??20, sensors.humidity??50) : 0} unit="kPa" decimals={2}/>
           </div>
         </div>
 
-        <div className="card bmo-card">
+        <div className="card bmo-card" style={bmoMaxH ? { maxHeight: bmoMaxH, overflow:'hidden' } : {}}>
           <BMO mood={mood}/>
           <div className={"bmo-status"+(notifications.length?" warn":"")}>
             {mood==="happy" ? "Thriving" : "Needs attention"}
@@ -377,10 +397,14 @@ function OverviewTab(p) {
               ? <div className="bmo-sub">No issues detected</div>
               : notifications.map(n => (
                 <span key={n.id} className={"bmo-alert bmo-alert--"+n.type}>
-                  {n.type==="alert"?I.alert:I.drop}{n.msg}
+                  {I[n.icon]}{n.msg}
                 </span>
               ))
             }
+          </div>
+          <div className="bmo-actions">
+            <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
+            <button className="btn-light" onClick={triggerLight}>{I.bulb} Turn on light</button>
           </div>
         </div>
       </div>
@@ -400,18 +424,6 @@ function OverviewTab(p) {
             <Sparkline data={memHistory[g.dataKey]} accent={g.accent} fill={g.fill}/>
           </div>
         ))}
-        <div className="card controls-card">
-          <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
-          <div className="water-duration">
-            <div className="water-duration-label">Water for:</div>
-            <div className="duration-pills">
-              {[1,3,5].map(d=>(
-                <button key={d} className={"duration-pill"+(ps.waterDuration===d?" active":"")} onClick={()=>updatePS("waterDuration",d)}>{d}s</button>
-              ))}
-            </div>
-          </div>
-          <button className="btn-light" onClick={triggerLight}>{I.bulb} Turn on light</button>
-        </div>
       </div>
     </div>
   );
@@ -435,6 +447,8 @@ function HistoryTab(p) {
       temperature: sl.map(v=>v.temperature??0),
       humidity:    sl.map(v=>v.humidity??0),
       light:       sl.map(v=>v.light??0),
+      pressure:    sl.map(v=>v.pressure??0),
+      vpd:         sl.map(v=>calcVPD(v.temperature??20, v.humidity??50)),
     };
   }, [fbHistory, range]);
 
@@ -445,6 +459,8 @@ function HistoryTab(p) {
       temperature: memHistory.temperature.slice(-n),
       humidity:    memHistory.humidity.slice(-n),
       light:       memHistory.light.slice(-n),
+      pressure:    memHistory.pressure.slice(-n),
+      vpd:         memHistory.vpd.slice(-n),
     };
   })();
 
@@ -518,7 +534,10 @@ function SettingsTab(p) {
   const GRAPH_OPTIONS = [
     { key:"moisture", label:"Moisture" }, { key:"temperature", label:"Temperature" },
     { key:"humidity", label:"Humidity" }, { key:"light",       label:"Light"       },
+    { key:"pressure", label:"Pressure" }, { key:"vpd",         label:"VPD"         },
   ];
+
+  const activeGraphCount = Object.values(ps.graphs).filter(Boolean).length;
 
   const DOT_COLORS = [
     "#4f8a3a","#7cc05a","#de5d92","#e36da2",
@@ -569,14 +588,24 @@ function SettingsTab(p) {
               ))}
             </div>
           </div>
-          <div className="settings-section-sub" style={{marginTop:8}}>Overview graphs</div>
+          <div className="settings-section-sub" style={{marginTop:8}}>
+            Overview graphs
+            <span className="graph-count-badge">{activeGraphCount} / 4</span>
+          </div>
           <div className="graph-toggles">
-            {GRAPH_OPTIONS.map(({key,label})=>(
-              <button key={key} className={"graph-toggle"+(ps.graphs[key]?" active":"")}
-                onClick={()=>updatePS("graphs",{...ps.graphs,[key]:!ps.graphs[key]})}>
-                {label}
-              </button>
-            ))}
+            {GRAPH_OPTIONS.map(({key,label})=>{
+              const isActive = ps.graphs[key];
+              const isDisabled = !isActive && activeGraphCount >= 4;
+              return (
+                <button key={key}
+                  className={"graph-toggle"+(isActive?" active":"")+(isDisabled?" disabled":"")}
+                  onClick={()=>{ if (!isDisabled) updatePS("graphs",{...ps.graphs,[key]:!isActive}); }}
+                  title={isDisabled ? "Deselect another graph first" : ""}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -648,6 +677,8 @@ function MobileShell(p) {
   const [tab, setTab] = useState("overview");
   const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
 
+  const [plantPickerOpen, setPlantPickerOpen] = useState(false);
+
   return (
     <div className="shell-mobile">
       <div className="mobile-content">
@@ -666,8 +697,17 @@ function MobileShell(p) {
               <BMO mood={mood}/>
               <div className="mobile-status-text">
                 <div className={"status-value"+(notifications.length?" warn":"")}>{notifications.length===0?"Healthy":"Needs attention"}</div>
-                <div className="status-updated">{notifications[0]?.msg ?? "All readings normal"}</div>
+                {notifications.length===0
+                  ? <div className="status-updated">All readings normal</div>
+                  : notifications.map(n=>(
+                    <div key={n.id} className="mobile-notif">{I[n.icon]} {n.msg}</div>
+                  ))
+                }
               </div>
+            </div>
+            <div className="mobile-actions">
+              <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
+              <button className="btn-light" onClick={triggerLight}>{I.bulb} Light on</button>
             </div>
             <div className="mobile-sensor-grid">
               {[{icon:I.drop,label:"Moisture",value:sensors?.soil_moisture,unit:"%"},{icon:I.therm,label:"Temp",value:sensors?.temperature,unit:"°C"},{icon:I.sun,label:"Light",value:sensors?.light,unit:"lx"},{icon:I.wind,label:"Humidity",value:sensors?.humidity,unit:"%"}].map(s=>(
@@ -686,22 +726,45 @@ function MobileShell(p) {
                 <Sparkline data={memHistory[g.dataKey]} accent={g.accent} fill={g.fill}/>
               </div>
             ))}
-            <div className="mobile-actions">
-              <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
-              <button className="btn-light" onClick={triggerLight}>{I.bulb} Light on</button>
-            </div>
           </>
         )}
         {tab==="history"  && <HistoryTab  {...p}/>}
         {tab==="settings" && <SettingsTab {...p}/>}
       </div>
 
+      {plantPickerOpen && (
+        <div className="plant-picker-overlay" onClick={()=>setPlantPickerOpen(false)}>
+          <div className="plant-picker-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="plant-picker-title">Switch plant</div>
+            {PLANTS.map(pl => {
+              const name = p.plantSettings?.[pl.id]?.name || pl.defaultLabel;
+              const color = p.plantSettings?.[pl.id]?.dotColor ||
+                (pl.dot==="green" ? "var(--green-dot)" : "var(--pink-dot)");
+              const isActive = p.activePlant === pl.id;
+              return (
+                <button key={pl.id} className={"plant-picker-item"+(isActive?" active":"")}
+                  onClick={()=>{ p.setActivePlant(pl.id); setPlantPickerOpen(false); }}>
+                  <span className="mobile-plant-dot" style={{ background: color }}/>
+                  {name}
+                  {isActive && <span className="plant-picker-check">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <nav className="mobile-tabbar">
-        {[["overview","Overview",I.grid],["history","History",I.history],["settings","Settings",I.gear]].map(([id,lbl,icon])=>(
+        {[["overview","Overview",I.grid],["history","History",I.chart],["settings","Settings",I.gear]].map(([id,lbl,icon])=>(
           <button key={id} className={"mobile-tab"+(tab===id?" active":"")} onClick={()=>setTab(id)}>{icon}{lbl}</button>
         ))}
-        <button className="mobile-tab" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>
-          {theme==="dark"?I.sunny:I.moon}{theme==="dark"?"Light":"Dark"}
+        <button className={"mobile-tab mobile-tab--plant"+(plantPickerOpen?" active":"")}
+          onClick={()=>setPlantPickerOpen(o=>!o)}>
+          <span className="mobile-plant-dot" style={{
+            background: p.plantSettings?.[p.activePlant]?.dotColor ||
+              (PLANTS.find(pl=>pl.id===p.activePlant)?.dot==="green" ? "var(--green-dot)" : "var(--pink-dot)")
+          }}/>
+          {p.activePlantLabel}
         </button>
       </nav>
     </div>

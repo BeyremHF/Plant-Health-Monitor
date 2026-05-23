@@ -91,10 +91,11 @@ button { font: inherit; cursor: pointer; }
 .sidebar { display: flex; flex-direction: column; gap: 24px; padding: 8px 0 0; }
 
 .brand { display: flex; gap: 12px; align-items: center; padding: 4px 12px; }
-.brand-mark { width: 32px; height: 32px; display: grid; place-items: center; color: var(--green); flex-shrink: 0; }
-.brand-mark svg { width: 22px; height: 22px; }
-.brand-title { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
-.brand-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.brand-mark { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--green); flex-shrink: 0; }
+.brand-mark svg { width: 22px; height: 22px; flex-shrink: 0; }
+.brand-text { display: flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; }
+.brand-title { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; line-height: 1.2; }
+.brand-sub { font-size: 12px; color: var(--text-muted); line-height: 1.2; }
 
 .nav { display: flex; flex-direction: column; gap: 4px; }
 .nav-item {
@@ -139,7 +140,10 @@ button { font: inherit; cursor: pointer; }
 /* ── Main pane ───────────────────────────────────────────────── */
 .main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
-.main-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 0; }
+.main-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 0; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.header-actions .btn-water,
+.header-actions .btn-light { padding: 7px 14px; font-size: 13px; border-radius: 8px; gap: 6px; }
 .page-title { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.01em; color: var(--text); }
 .status-label { font-size: 13px; color: var(--text-muted); }
 
@@ -161,12 +165,22 @@ button { font: inherit; cursor: pointer; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 
 .status-card { display: flex; flex-direction: column; gap: 14px; }
+.status-main { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.status-head-right { display: flex; align-items: center; gap: 10px; }
+.status-action-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: none; border-radius: 5px; cursor: pointer;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 8px;
+  white-space: nowrap; line-height: 1;
+}
+.status-action-btn svg { width: 10px; height: 10px; flex-shrink: 0; }
 .status-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .status-value { font-size: 22px; font-weight: 700; margin-top: 2px; color: var(--green); letter-spacing: -0.01em; }
 .status-value.warn { color: var(--warn); }
 .status-updated { font-size: 12px; color: var(--text-dim); }
 
-.sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sensor-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .sensor { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .sensor-label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 .sensor-label svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -175,13 +189,29 @@ button { font: inherit; cursor: pointer; }
 
 /* ── BMO card ────────────────────────────────────────────────── */
 .bmo-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; }
+.bmo-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+.bmo-actions .btn-water,
+.bmo-actions .btn-light {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.5rem;
+  gap: 0.35rem;
+  border-radius: 0.55rem;
+  justify-content: center;
+}
+.bmo-actions .btn-water svg,
+.bmo-actions .btn-light svg { width: 0.8rem; height: 0.8rem; }
 .bmo {
   width: 100%;
-  max-width: 320px;
+  max-width: min(100%, clamp(140px, 13vw, 210px));
   aspect-ratio: 16 / 10;
-  background: var(--bmo-body);
-  border: 3px solid var(--bmo-line);
-  border-radius: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,12 +263,12 @@ button { font: inherit; cursor: pointer; }
 .range-pill { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .range-pill.active { background: var(--green-bg); color: var(--green-on-bg); border-color: transparent; }
 
-.history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.history-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 .history-card { display: flex; flex-direction: column; padding: 18px; gap: 10px; min-height: 240px; }
 .history-card .chart-svg { min-height: 140px; }
 
-.history-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 4px; border-top: 1px solid var(--border); margin-top: 6px; }
-.history-stats > div { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; }
+.history-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 2px; border-top: 1px solid var(--border); margin-top: 3px; }
+.history-stats > div { display: flex; flex-direction: column; gap: 1px; padding-top: 4px; }
 .history-stat-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
 .history-stat-value { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 
@@ -252,6 +282,8 @@ button { font: inherit; cursor: pointer; }
 .graph-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
 .graph-toggle { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; transition: all .15s; }
 .graph-toggle.active { background: var(--water-bg); color: var(--water-fg); border-color: transparent; }
+.graph-toggle.disabled { opacity: 0.35; cursor: not-allowed; }
+.graph-count-badge { margin-left: 0.5rem; font-size: 0.72rem; background: var(--surface-2); color: var(--text-muted); padding: 0.15rem 0.45rem; border-radius: 999px; font-weight: 600; vertical-align: middle; }
 
 .setting-row { display: flex; flex-direction: column; gap: 8px; }
 .setting-row-head { display: flex; align-items: center; justify-content: space-between; }
@@ -293,10 +325,10 @@ button { font: inherit; cursor: pointer; }
 .mobile-title { font-size: 26px; font-weight: 700; margin: 0; color: var(--text); letter-spacing: -0.01em; }
 .mobile-updated { font-size: 12px; color: var(--text-dim); }
 .mobile-status-card { display: flex; align-items: center; gap: 14px; padding: 16px; }
-.mobile-status-card .bmo { width: 64px; height: 64px; border-width: 2px; border-radius: 12px; }
-.mobile-status-card .bmo-eye { width: 5px; height: 5px; }
-.mobile-status-card .bmo-mouth { width: 18px; height: 9px; border-bottom-width: 2px; }
+.mobile-status-card .bmo { width: clamp(90px, 28vw, 120px); height: auto; aspect-ratio: 16/10; border: none; border-radius: 0; background: transparent; }
 .mobile-status-text { flex: 1; }
+.mobile-notif { font-size: 11px; color: var(--warn); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+.mobile-notif svg { width: 11px; height: 11px; flex-shrink: 0; }
 .mobile-status-text .status-value { font-size: 18px; }
 .mobile-sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .mobile-sensor { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
@@ -307,6 +339,45 @@ button { font: inherit; cursor: pointer; }
 .mobile-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--text-muted); font-size: 11px; font-weight: 500; }
 .mobile-tab.active { color: var(--green); }
 .mobile-tab svg { width: 18px; height: 18px; }
+.mobile-tab--plant { gap: 4px; }
+.mobile-plant-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%; flex-shrink: 0;
+  display: block;
+}
+.mobile-tab--plant .mobile-plant-dot {
+  margin: 2px auto; /* only centre in tab bar context */
+}
+
+/* ── Mobile plant picker popup ───────────────────────────── */
+.plant-picker-overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.plant-picker-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 16px 16px 32px;
+  width: 100%; max-width: 380px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.plant-picker-title {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.plant-picker-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: transparent; border: none;
+  color: var(--text); font-size: 15px; font-weight: 500;
+  text-align: left; cursor: pointer; transition: background .12s;
+}
+.plant-picker-item:hover  { background: var(--surface-2); }
+.plant-picker-item.active { background: var(--surface-2); }
+.plant-picker-check { margin-left: auto; color: var(--green); font-weight: 700; }
 
 /* Settings: single column on mobile */
 .shell-mobile .settings-grid { column-count: 1; }
@@ -390,20 +461,22 @@ button { font: inherit; cursor: pointer; }
 /* ── Chart modal ──────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.65);
   display: flex; align-items: center; justify-content: center;
-  padding: 40px;
+  padding: clamp(16px, 2.5vh, 36px) clamp(24px, 4vw, 64px);
   backdrop-filter: blur(4px);
 }
 .modal-box {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 24px;
-  width: 100%; max-width: 900px;
+  padding: 28px;
+  width: 100%;
+  max-width: calc(86vh * 2.4);
+  height: 86vh;
   display: flex; flex-direction: column; gap: 16px;
 }
-.modal-head { display: flex; align-items: center; justify-content: space-between; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .modal-close {
   display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 8px;
@@ -412,7 +485,7 @@ button { font: inherit; cursor: pointer; }
 }
 .modal-close:hover { color: var(--text); }
 .modal-close svg { width: 16px; height: 16px; }
-.modal-chart { height: 340px; }
+.modal-chart { flex: 1; min-height: 0; }
 .modal-chart .chart-svg { width: 100%; height: 100%; }
 
 /* ── Preset name input ────────────────────────────────────── */
@@ -424,7 +497,29 @@ button { font: inherit; cursor: pointer; }
 }
 .preset-name-input:focus { border-color: var(--green); }
 
-/* ── Color palette picker ─────────────────────────────────── */
+.status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  width: 7rem;
+}
+.status-action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem;
+  min-height: 0;
+}
+.status-action-btn svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
 .color-palette {
   display: flex; flex-wrap: wrap; gap: 0.55rem;
 }
@@ -456,10 +551,11 @@ button { font: inherit; cursor: pointer; }
         Historical fit without scrolling.
    ══════════════════════════════════════════════════════════════ */
 
-/* 1. Root scale: respects BOTH viewport dimensions so 100vh always fits.
-   At wide+tall monitors uses vw; on shorter screens vh holds it back. */
+/* 1. Root scale: grows with viewport width, capped to match sidebar max width.
+   Sidebar = clamp(200px, 20vw, 380px). Font = sidebar × 0.075.
+   Both freeze at ~1900px logical viewport → no mismatch when resizing. */
 html, :root {
-  font-size: clamp(15px, min(1.5vw, 3.0vh), 34px);
+  font-size: clamp(15px, 1.5vw, 28px);
 }
 
 /* 2. Shell fills the viewport, no horizontal cap. */
@@ -477,11 +573,11 @@ html, :root {
 
 /* 3. Sidebar — scaled spacing/type. */
 .sidebar { gap: clamp(0.8rem, 1.2vw, 1.2rem); padding: 0.7rem 0.7rem 1rem; }
-.brand        { gap: 0.7rem; padding: 0.3rem 0.5rem; }
-.brand-mark   { width: 1.9rem; height: 1.9rem; }
-.brand-mark svg { width: 1.4rem; height: 1.4rem; }
-.brand-title  { font-size: 1rem; }
-.brand-sub    { font-size: 0.63rem; white-space: nowrap; }
+.brand        { gap: 0.7rem; padding: 0.3rem 0.5rem; align-items: center; }
+.brand-mark   { width: 1.9rem; height: 1.9rem; display: flex; align-items: center; justify-content: center; }
+.brand-mark svg { width: 1.4rem; height: 1.4rem; flex-shrink: 0; }
+.brand-title  { font-size: 1rem; line-height: 1.2; }
+.brand-sub    { font-size: 0.63rem; white-space: nowrap; line-height: 1.2; }
 .nav { gap: 0.3rem; }
 .nav-item     { padding: 0.7rem 0.85rem; gap: 0.6rem; font-size: 0.9rem; border-radius: 0.7rem; }
 .nav-item svg { width: 1.05rem; height: 1.05rem; }
@@ -503,6 +599,9 @@ html, :root {
 .main:not(.main--fit) { overflow-y: auto; padding-bottom: clamp(1.2rem, 1.5vw, 2rem); padding-right: clamp(0.3rem, 0.4vw, 0.6rem); scrollbar-gutter: stable; }
 
 .main-header { padding: 0.3rem 0.3rem 0; gap: 0.8rem; }
+.header-actions { gap: 0.5rem; }
+.header-actions .btn-water,
+.header-actions .btn-light { padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: 0.5rem; gap: 0.45rem; }
 .page-title  { font-size: 2.2rem; line-height: 1.1; }
 .status-label{ font-size: 0.78rem; }
 .live-pill   { font-size: 0.78rem; padding: 0.35rem 0.85rem; gap: 0.4rem; }
@@ -510,27 +609,33 @@ html, :root {
 
 /* 5. Cards & top/bottom rows. */
 .card        { padding: min(clamp(1rem, 1.1vw, 1.6rem), 2.5vh); border-radius: 1rem; }
-.top-row     { gap: clamp(0.8rem, 1vw, 1.3rem); grid-template-columns: 1fr minmax(160px, 24%); }
-.bottom-row  { gap: clamp(0.8rem, 1vw, 1.3rem); grid-template-columns: 1fr 1fr minmax(160px, 24%); }
+.top-row     { gap: clamp(0.8rem, 1vw, 1.3rem); grid-template-columns: 1fr minmax(160px, 28%); }
+.bottom-row  { gap: clamp(0.8rem, 1vw, 1.3rem); }
 
-.status-card { gap: min(1rem, 2vh); }
+.status-card { gap: min(1rem, 1.8vh); }
+.status-head-right { gap: 0.5rem; }
+.status-action-btn { font-size: 0.65rem; padding: 0.18rem 0.5rem; gap: 0.25rem; border-radius: 0.35rem; }
+.status-action-btn svg { width: 0.65rem; height: 0.65rem; }
 .status-value{ font-size: min(1.5rem, 3.5vh); }
 .status-updated{ font-size: 0.75rem; }
 
-.sensor-grid { gap: min(0.65rem, 1.5vh); }
-.sensor      { padding: min(0.95rem, 2vh) min(1.05rem, 2.5vw); border-radius: 0.7rem; gap: min(0.45rem, 1vh); }
+.sensor-grid { gap: min(0.65rem, 1.3vh); }
+.sensor      { padding: min(0.95rem, 1.8vh) min(1.05rem, 2.5vw); border-radius: 0.7rem; gap: min(0.45rem, 0.9vh); }
 .sensor-label{ font-size: 0.8rem; gap: 0.4rem; }
 .sensor-label svg { width: 0.9rem; height: 0.9rem; }
-.sensor-value{ font-size: min(1.5rem, 3.2vh); }
+.sensor-value{ font-size: min(1.5rem, 3.0vh); }
 .sensor-unit { font-size: 0.78rem; }
 
-.bmo-card { padding: 0.9rem 0.7rem; gap: 0.55rem; justify-content: flex-start; }
+.bmo-card { padding: 0.9rem 0.7rem; gap: 0.35rem; justify-content: flex-start; }
+.bmo-actions { gap: 0.4rem; }
+.bmo-actions .btn-water,
+.bmo-actions .btn-light { font-size: 0.75rem; padding: clamp(0.3rem, 0.9vh, 0.5rem) 0.5rem; gap: 0.3rem; border-radius: 0.5rem; }
+.bmo-actions .btn-water svg,
+.bmo-actions .btn-light svg { width: 0.78rem; height: 0.78rem; }
 .bmo {
   width: 100%;
-  max-width: min(100%, clamp(160px, 18vw, 320px));
+  max-width: min(100%, clamp(140px, 13vw, 210px));
   aspect-ratio: 16 / 10;
-  border-width: 0.15rem;
-  border-radius: 0.9rem;
 }
 .bmo-status     { font-size: 1rem; }
 .bmo-sub        { font-size: 0.78rem; }
@@ -544,24 +649,24 @@ html, :root {
 .chart-pill  { font-size: 0.68rem; padding: 0.22rem 0.6rem; }
 .chart-svg   { min-height: 0; }
 
-/* 8. Controls card — vh-aware so content compresses on short screens and never clips. */
-.controls-card { padding: clamp(0.4rem, 1.5vh, 1rem) 1.3rem; gap: clamp(0.25rem, 1vh, 0.65rem); justify-content: center; }
+/* 8. Controls card — buttons fill width, vh-aware vertical spacing. */
+.controls-card { padding: clamp(0.5rem, 1.5vh, 1rem) clamp(0.6rem, 1vw, 1rem); gap: clamp(0.3rem, 1vh, 0.6rem); justify-content: center; align-items: stretch; }
 .btn-water, .btn-light {
   display: flex; align-items: center; justify-content: center;
-  gap: 0.6rem; padding: clamp(0.3rem, 1.2vh, 0.7rem) 1rem; font-size: 0.95rem; font-weight: 600;
-  border: none; border-radius: 0.7rem; transition: filter .15s, transform .05s;
-  white-space: nowrap; flex-shrink: 0;
+  gap: 0.55rem; padding: clamp(0.35rem, 1.2vh, 0.65rem) 1rem; font-size: 0.88rem; font-weight: 600;
+  border: none; border-radius: 0.65rem; transition: filter .15s, transform .05s;
+  white-space: nowrap; flex-shrink: 0; width: 100%;
 }
-.btn-water svg, .btn-light svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
-.water-duration { gap: clamp(0.15rem, 0.6vh, 0.35rem); flex-shrink: 0; }
-.water-duration-label { font-size: 0.82rem; }
-.duration-pills { gap: 0.45rem; }
-.duration-pill { padding: clamp(0.25rem, 0.7vh, 0.4rem) 0.65rem; font-size: 0.82rem; border-radius: 0.5rem; }
+.btn-water svg, .btn-light svg { width: 0.95rem; height: 0.95rem; flex-shrink: 0; }
+.water-duration { gap: clamp(0.2rem, 0.7vh, 0.35rem); flex-shrink: 0; }
+.water-duration-label { font-size: 0.78rem; }
+.duration-pills { gap: 0.4rem; }
+.duration-pill { padding: clamp(0.25rem, 0.7vh, 0.4rem) 0.6rem; font-size: 0.78rem; border-radius: 0.45rem; }
 
 /* 9. Overview: header + content-sized top row + flex-fill bottom row. */
 .overview-wrap {
   display: grid;
-  grid-template-rows: auto auto minmax(max(28vh, 160px), 1fr);
+  grid-template-rows: auto auto 1fr;
   gap: clamp(0.6rem, 0.8vw, 1.1rem);
   height: 100%;
   min-height: 0;
@@ -572,9 +677,14 @@ html, :root {
 .overview-wrap .bottom-row { display: grid; min-height: 0; }
 .overview-wrap .bottom-row > .card { height: 100%; min-height: 0; }
 .overview-wrap .bottom-row > .chart-card { overflow: hidden; }
-.overview-wrap .chart-svg  { height: 100%; }
+.overview-wrap .chart-svg  { flex: 1; min-height: 0; }
 .overview-wrap .status-card { align-self: start; }
-.overview-wrap .bmo-card    { align-self: start; }
+.overview-wrap .bmo-card    { align-self: start; padding-bottom: 0.5rem; container-type: size; }
+.overview-wrap .bmo-actions { margin-top: auto; }
+.overview-wrap .bmo-card .bmo { flex: 1; min-height: 50px; max-height: 55%; width: auto; max-width: 95%; aspect-ratio: 16/10; }
+.overview-wrap .bmo-card .bmo-status { font-size: clamp(0.7rem, 6cqh, 1rem); }
+.overview-wrap .bmo-card .bmo-alerts { gap: clamp(0.2rem, 1.5cqh, 0.4rem); }
+.overview-wrap .bmo-card .bmo-alert  { font-size: clamp(0.6rem, 5cqh, 0.78rem); padding: clamp(0.2rem, 1.5cqh, 0.35rem) clamp(0.3rem, 2cqh, 0.55rem); }
 
 /* 10. History tab: 2x2 grid that fills viewport. */
 .history-wrap {
@@ -587,16 +697,20 @@ html, :root {
   padding-bottom: clamp(1.2rem, 1.5vw, 2rem);
 }
 .history-wrap .history-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: clamp(0.7rem, 0.9vw, 1.2rem);
   min-height: 0;
 }
-.history-wrap .history-card { min-height: 0; height: 100%; padding: clamp(0.8rem, 0.95vw, 1.3rem); gap: 0.5rem; overflow: hidden; }
+.history-wrap .history-card { min-height: 0; height: 100%; padding: clamp(0.8rem, 0.95vw, 1.3rem); gap: 0.3rem; overflow: hidden; }
 .history-wrap .history-card .chart-svg { min-height: 0; flex: 1; }
+.history-wrap .history-stats { padding-top: clamp(0.1rem, 0.3vh, 0.2rem); margin-top: clamp(0.1rem, 0.3vh, 0.2rem); gap: clamp(4px, 0.8vh, 8px); }
+.history-wrap .history-stats > div { padding-top: 3px; }
 .range-pill        { font-size: 0.78rem; padding: 0.32rem 0.75rem; }
-.history-stat-label{ font-size: 0.65rem; }
-.history-stat-value{ font-size: 1.05rem; }
+.history-stat-label{ font-size: clamp(0.48rem, 1.0vh, 0.56rem); }
+.history-stat-value{ font-size: clamp(0.58rem, 1.6vh, 0.82rem); }
+.history-wrap .chart-title { font-size: clamp(0.62rem, 1.5vh, 0.8rem); }
+.history-wrap .chart-pill  { font-size: clamp(0.52rem, 1.1vh, 0.6rem); padding: 0.18rem 0.5rem; }
 
 /* 11. Settings tab — can scroll if needed. */
 .settings-grid     { column-gap: clamp(0.8rem, 1vw, 1.4rem); }

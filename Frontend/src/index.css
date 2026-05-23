@@ -49,6 +49,9 @@
   --pink-dot:     #de5d92;
   --green-dot:    #4f8a3a;
 
+  --pressure-fill: rgba(124, 75, 181, 0.12);
+  --vpd-fill:      rgba(26, 138, 122, 0.12);
+
   /* Type scale (driven by container) */
   color-scheme: light;
 }
@@ -87,6 +90,9 @@
 
   --pink-dot:     #e36da2;
   --green-dot:    #7cc05a;
+
+  --pressure-fill: rgba(124, 75, 181, 0.18);
+  --vpd-fill:      rgba(26, 138, 122, 0.18);
 
   color-scheme: dark;
 }
