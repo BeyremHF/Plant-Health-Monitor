@@ -3,8 +3,10 @@ import { database } from "./firebase";
 import { ref, onValue, set } from "firebase/database";
 import {
   calcVPD,
+  computePlantHealthScore,
   filterRecordsByTimeframe,
   getMemHistorySliceCount,
+  getLowScoreWarning,
   normalizeHistoryRecords,
   recordsToChartData,
 } from "./historyAnalytics";
@@ -438,14 +440,26 @@ function HistoryTab(p) {
   const { memHistory, fbHistory, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
 
-  const filteredRecords = useMemo(() => {
-    const normalizedRecords = normalizeHistoryRecords(fbHistory);
-    return filterRecordsByTimeframe(normalizedRecords, range);
-  }, [fbHistory, range]);
+  const normalizedRecords = useMemo(() => normalizeHistoryRecords(fbHistory), [fbHistory]);
+
+  const filteredRecords = useMemo(
+    () => filterRecordsByTimeframe(normalizedRecords, range),
+    [normalizedRecords, range]
+  );
 
   const fbData = useMemo(
     () => (filteredRecords.length ? recordsToChartData(filteredRecords) : null),
     [filteredRecords]
+  );
+
+  const healthScore = useMemo(
+    () => computePlantHealthScore(filteredRecords, ps.thresholds, range),
+    [filteredRecords, ps.thresholds, range]
+  );
+
+  const lowScoreWarning = useMemo(
+    () => getLowScoreWarning(normalizedRecords, ps.thresholds, healthScore.score ?? -1),
+    [normalizedRecords, ps.thresholds, healthScore.score]
   );
 
   const data = fbData || (() => {
@@ -480,6 +494,46 @@ function HistoryTab(p) {
             <button key={k} className={"range-pill"+(range===k?" active":"")} onClick={()=>updatePS("timeframe",k)}>{l}</button>
           ))}
         </div>
+      </div>
+
+      <div className="card history-score-card">
+        <div className="history-score-head">
+          <div>
+            <div className="status-label history-score-title">Plant health score</div>
+            <div className="history-score-caption">Based on the {healthScore.windowLabel}</div>
+          </div>
+          {healthScore.hasEnoughData ? (
+            <span className={"history-score-badge history-score-badge--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+              {healthScore.label}
+            </span>
+          ) : null}
+        </div>
+
+        {healthScore.hasEnoughData ? (
+          <>
+            <div className={"history-score-main history-score-main--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+              <div className="history-score-value">{healthScore.score}</div>
+              <div className="history-score-out-of">/ 100</div>
+            </div>
+            <div className="history-score-breakdown">
+              <div className="history-score-item">
+                <span className="history-score-item-label">Moisture</span>
+                <span className="history-score-item-value">{healthScore.breakdown.moisture}%</span>
+              </div>
+              <div className="history-score-item">
+                <span className="history-score-item-label">Temperature</span>
+                <span className="history-score-item-value">{healthScore.breakdown.temperature}%</span>
+              </div>
+              <div className="history-score-item">
+                <span className="history-score-item-label">Light</span>
+                <span className="history-score-item-value">{healthScore.breakdown.light}%</span>
+              </div>
+            </div>
+            {lowScoreWarning && <div className="history-score-warning">{lowScoreWarning}</div>}
+          </>
+        ) : (
+          <div className="history-score-empty">Not enough history for this timeframe.</div>
+        )}
       </div>
 
       <div className="history-grid">

@@ -263,6 +263,52 @@ button { font: inherit; cursor: pointer; }
 .range-pill { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 600; }
 .range-pill.active { background: var(--green-bg); color: var(--green-on-bg); border-color: transparent; }
 
+.history-score-card { display: flex; flex-direction: column; gap: 14px; }
+.history-score-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.history-score-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.history-score-caption { font-size: 15px; color: var(--text-muted); margin-top: 4px; }
+.history-score-main { display: flex; align-items: baseline; gap: 8px; }
+.history-score-value { font-size: 60px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+.history-score-out-of { font-size: 18px; color: var(--text-muted); font-weight: 600; }
+.history-score-main--excellent .history-score-value { color: var(--green); }
+.history-score-main--good .history-score-value { color: var(--water-fg); }
+.history-score-main--fair .history-score-value { color: var(--light-fg); }
+.history-score-main--needs-attention .history-score-value { color: var(--warn); }
+.history-score-badge {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+}
+.history-score-badge--excellent {
+  background: var(--green-bg);
+  color: var(--green-on-bg);
+}
+.history-score-badge--good {
+  background: var(--water-bg);
+  color: var(--water-fg);
+}
+.history-score-badge--fair {
+  background: var(--light-bg);
+  color: var(--light-fg);
+}
+.history-score-badge--needs-attention {
+  background: var(--warn-bg);
+  color: var(--warn-on-bg);
+}
+.history-score-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.history-score-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--surface-2); border-radius: 10px; }
+.history-score-item-label { font-size: 12px; color: var(--text-muted); }
+.history-score-item-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.history-score-warning {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn-on-bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.history-score-empty { font-size: 14px; color: var(--text-muted); }
+
 .history-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 .history-card { display: flex; flex-direction: column; padding: 18px; gap: 10px; min-height: 240px; }
 .history-card .chart-svg { min-height: 140px; }
@@ -397,6 +443,7 @@ button { font: inherit; cursor: pointer; }
   grid-template-rows: auto !important;
   min-height: 0;
 }
+.shell-mobile .history-score-breakdown { grid-template-columns: 1fr; }
 .shell-mobile .history-wrap .history-card {
   height: auto !important;
   min-height: 220px !important;
@@ -702,6 +749,18 @@ html, :root {
   gap: clamp(0.7rem, 0.9vw, 1.2rem);
   min-height: 0;
 }
+.history-wrap .history-score-card { gap: clamp(0.7rem, 1vh, 1rem); }
+.history-wrap .history-score-title { font-size: clamp(0.95rem, 1.8vh, 1.15rem); }
+.history-wrap .history-score-caption { font-size: clamp(0.84rem, 1.35vh, 0.96rem); }
+.history-wrap .history-score-value { font-size: clamp(2.3rem, 5.7vh, 3.6rem); }
+.history-wrap .history-score-out-of { font-size: clamp(0.92rem, 1.7vh, 1.08rem); }
+.history-wrap .history-score-badge { font-size: 0.72rem; padding: 0.32rem 0.7rem; }
+.history-wrap .history-score-breakdown { gap: clamp(0.4rem, 0.8vh, 0.7rem); }
+.history-wrap .history-score-item { padding: clamp(0.6rem, 1vh, 0.8rem) clamp(0.7rem, 1vw, 0.9rem); }
+.history-wrap .history-score-item-label { font-size: clamp(0.62rem, 1.2vh, 0.72rem); }
+.history-wrap .history-score-item-value { font-size: clamp(1rem, 2.2vh, 1.4rem); }
+.history-wrap .history-score-warning,
+.history-wrap .history-score-empty { font-size: clamp(0.72rem, 1.3vh, 0.82rem); }
 .history-wrap .history-card { min-height: 0; height: 100%; padding: clamp(0.8rem, 0.95vw, 1.3rem); gap: 0.3rem; overflow: hidden; }
 .history-wrap .history-card .chart-svg { min-height: 0; flex: 1; }
 .history-wrap .history-stats { padding-top: clamp(0.1rem, 0.3vh, 0.2rem); margin-top: clamp(0.1rem, 0.3vh, 0.2rem); gap: clamp(4px, 0.8vh, 8px); }
