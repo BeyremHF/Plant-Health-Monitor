@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { database } from "./firebase";
 import { ref, onValue, set } from "firebase/database";
+import {
+  calcVPD,
+  filterRecordsByTimeframe,
+  getMemHistorySliceCount,
+  normalizeHistoryRecords,
+  recordsToChartData,
+} from "./historyAnalytics";
 import "./App.css";
 
 /* ── Icons ─────────────────────────────────────────────────── */
@@ -26,11 +33,6 @@ const I = {
   gauge:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="M12 12 8 8"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M7 17A7 7 0 0 1 8.5 7M17 17a7 7 0 0 0-1.5-10"/></svg>,
   vapor:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 22v-6M8 6c0 2 4 3 4 6s-4 4-4 6M16 6c0 2-4 3-4 6s4 4 4 6"/></svg>,
 };
-
-function calcVPD(temp, humidity) {
-  const svp = 0.6108 * Math.exp(17.27 * temp / (temp + 237.3));
-  return Math.max(0, (1 - humidity / 100) * svp);
-}
 
 /* ── Plants ─────────────────────────────────────────────────── */
 const PLANTS = [
@@ -435,25 +437,19 @@ function OverviewTab(p) {
 function HistoryTab(p) {
   const { memHistory, fbHistory, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
-  const TIMEFRAME = { "1h":12,"6h":72,"12h":144,"24h":288,"7d":2016 };
 
-  const fbData = useMemo(() => {
-    if (!fbHistory) return null;
-    const arr = Object.values(fbHistory);
-    const n = TIMEFRAME[range] ?? 288;
-    const sl = arr.slice(-n);
-    return {
-      moisture:    sl.map(v=>v.soil_moisture??0),
-      temperature: sl.map(v=>v.temperature??0),
-      humidity:    sl.map(v=>v.humidity??0),
-      light:       sl.map(v=>v.light??0),
-      pressure:    sl.map(v=>v.pressure??0),
-      vpd:         sl.map(v=>calcVPD(v.temperature??20, v.humidity??50)),
-    };
+  const filteredRecords = useMemo(() => {
+    const normalizedRecords = normalizeHistoryRecords(fbHistory);
+    return filterRecordsByTimeframe(normalizedRecords, range);
   }, [fbHistory, range]);
 
+  const fbData = useMemo(
+    () => (filteredRecords.length ? recordsToChartData(filteredRecords) : null),
+    [filteredRecords]
+  );
+
   const data = fbData || (() => {
-    const n = TIMEFRAME[range] ?? 96;
+    const n = getMemHistorySliceCount(range);
     return {
       moisture:    memHistory.moisture.slice(-n),
       temperature: memHistory.temperature.slice(-n),
