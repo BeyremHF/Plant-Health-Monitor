@@ -28,6 +28,12 @@ const TIMEFRAME_LABELS = {
 };
 
 const MIN_SCORE_RECORDS = 10;
+const MIN_TREND_HALF_RECORDS = 3;
+const TREND_NOISE_THRESHOLDS = {
+  moisture: 3,
+  temperature: 0.8,
+  light: 75,
+};
 
 export function calcVPD(temp, humidity) {
   const svp = 0.6108 * Math.exp((17.27 * temp) / (temp + 237.3));
@@ -200,4 +206,114 @@ export function getLowScoreWarning(records, thresholds, overallScore) {
   }
 
   return null;
+}
+
+function average(values) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function getTrendDirection(metric, delta) {
+  const threshold = TREND_NOISE_THRESHOLDS[metric];
+  if (Math.abs(delta) < threshold) return "stable";
+  return delta > 0 ? "rising" : "falling";
+}
+
+function getTrendInterpretation(metric, direction, recentAverage, thresholds) {
+  if (metric === "moisture") {
+    if (direction === "falling" && recentAverage < thresholds.moistureMin) {
+      return "Falling and now below your target moisture range.";
+    }
+    if (direction === "stable" && recentAverage >= thresholds.moistureMin) {
+      return "Stable and staying within your target moisture range.";
+    }
+    if (direction === "rising" && recentAverage < thresholds.moistureMin) {
+      return "Improving, but still below your target moisture range.";
+    }
+    return "Moisture is moving without crossing a major concern threshold.";
+  }
+
+  if (metric === "temperature") {
+    const inRange =
+      recentAverage >= thresholds.tempMin && recentAverage <= thresholds.tempMax;
+
+    if (direction === "stable" && inRange) {
+      return "Stable and staying within your target temperature range.";
+    }
+    if (direction === "rising" && recentAverage > thresholds.tempMax) {
+      return "Rising and now above your target temperature range.";
+    }
+    if (direction === "falling" && recentAverage < thresholds.tempMin) {
+      return "Falling and now below your target temperature range.";
+    }
+    return "Temperature changed, but not in a way that signals a major issue.";
+  }
+
+  if (direction === "rising" && recentAverage < thresholds.lightMin) {
+    return "Improving, but still below your target light level.";
+  }
+  if (direction === "stable" && recentAverage >= thresholds.lightMin) {
+    return "Stable and staying within your target light level.";
+  }
+  if (direction === "falling" && recentAverage < thresholds.lightMin) {
+    return "Falling and now below your target light level.";
+  }
+  return "Light changed, but not in a way that signals a major issue.";
+}
+
+export function computeTrendSummaryCards(records, thresholds, timeframe) {
+  if (!Array.isArray(records) || records.length === 0) {
+    return { hasEnoughData: false, cards: [] };
+  }
+
+  const timeframeSeconds = TIMEFRAME_TO_SECONDS[timeframe];
+  if (!timeframeSeconds) {
+    return { hasEnoughData: false, cards: [] };
+  }
+
+  const latestTimestamp = records[records.length - 1]?.timestamp;
+  if (!Number.isFinite(latestTimestamp)) {
+    return { hasEnoughData: false, cards: [] };
+  }
+
+  const midpoint = latestTimestamp - timeframeSeconds / 2;
+  const recentRecords = records.filter((record) => record.timestamp >= midpoint);
+  const previousRecords = records.filter((record) => record.timestamp < midpoint);
+
+  if (
+    recentRecords.length < MIN_TREND_HALF_RECORDS ||
+    previousRecords.length < MIN_TREND_HALF_RECORDS
+  ) {
+    return { hasEnoughData: false, cards: [] };
+  }
+
+  const metrics = [
+    { key: "moisture", title: "Moisture", field: "soil_moisture", unit: "%", decimals: 1 },
+    { key: "temperature", title: "Temperature", field: "temperature", unit: "°C", decimals: 1 },
+    { key: "light", title: "Light", field: "light", unit: "lux", decimals: 0 },
+  ];
+
+  const cards = metrics.map((metric) => {
+    const recentAverage = average(recentRecords.map((record) => record[metric.field]));
+    const previousAverage = average(previousRecords.map((record) => record[metric.field]));
+    const delta = recentAverage - previousAverage;
+    const direction = getTrendDirection(metric.key, delta);
+
+    return {
+      key: metric.key,
+      title: metric.title,
+      direction,
+      delta,
+      unit: metric.unit,
+      decimals: metric.decimals,
+      interpretation: getTrendInterpretation(
+        metric.key,
+        direction,
+        recentAverage,
+        thresholds
+      ),
+    };
+  });
+
+  return { hasEnoughData: true, cards };
 }

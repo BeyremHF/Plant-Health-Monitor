@@ -4,12 +4,14 @@ import { ref, onValue, set } from "firebase/database";
 import {
   calcVPD,
   computePlantHealthScore,
+  computeTrendSummaryCards,
   filterRecordsByTimeframe,
   getMemHistorySliceCount,
   getLowScoreWarning,
   normalizeHistoryRecords,
   recordsToChartData,
 } from "./historyAnalytics";
+import { MOCK_BASIL_HISTORY } from "./mockBasilHistory";
 import "./App.css";
 
 /* ── Icons ─────────────────────────────────────────────────── */
@@ -326,7 +328,7 @@ function DesktopShell(p) {
         </button>
       </aside>
 
-      <main className={"main"+(activeNav==="overview"||activeNav==="history"?" main--fit":"")}>
+      <main className={"main"+(activeNav==="overview"?" main--fit":"")}>
         {activeNav==="overview" && <OverviewTab  {...p}/>}
         {activeNav==="history"  && <HistoryTab   {...p}/>}
         {activeNav==="settings" && <SettingsTab  {...p}/>}
@@ -437,10 +439,11 @@ function OverviewTab(p) {
    History tab — clickable/expandable charts
    ══════════════════════════════════════════════════════════════ */
 function HistoryTab(p) {
-  const { memHistory, fbHistory, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
+  const { memHistory, fbHistory, activePlant, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
+  const historySource = fbHistory || (activePlant === "basil-1" ? MOCK_BASIL_HISTORY : null);
 
-  const normalizedRecords = useMemo(() => normalizeHistoryRecords(fbHistory), [fbHistory]);
+  const normalizedRecords = useMemo(() => normalizeHistoryRecords(historySource), [historySource]);
 
   const filteredRecords = useMemo(
     () => filterRecordsByTimeframe(normalizedRecords, range),
@@ -454,6 +457,11 @@ function HistoryTab(p) {
 
   const healthScore = useMemo(
     () => computePlantHealthScore(filteredRecords, ps.thresholds, range),
+    [filteredRecords, ps.thresholds, range]
+  );
+
+  const trendSummary = useMemo(
+    () => computeTrendSummaryCards(filteredRecords, ps.thresholds, range),
     [filteredRecords, ps.thresholds, range]
   );
 
@@ -496,44 +504,78 @@ function HistoryTab(p) {
         </div>
       </div>
 
-      <div className="card history-score-card">
-        <div className="history-score-head">
-          <div>
-            <div className="status-label history-score-title">Plant health score</div>
-            <div className="history-score-caption">Based on the {healthScore.windowLabel}</div>
-          </div>
-          {healthScore.hasEnoughData ? (
-            <span className={"history-score-badge history-score-badge--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
-              {healthScore.label}
-            </span>
-          ) : null}
-        </div>
+      <div className="history-summary-row">
+        <div className="card history-trend-card">
+            <div className="history-trend-head">
+              <div>
+                <div className="status-label history-trend-title">Trend Summary</div>
+                <div className="history-trend-caption">Comparing the recent half of the {healthScore.windowLabel} with the previous half.</div>
+              </div>
+            </div>
 
-        {healthScore.hasEnoughData ? (
-          <>
-            <div className={"history-score-main history-score-main--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
-              <div className="history-score-value">{healthScore.score}</div>
-              <div className="history-score-out-of">/ 100</div>
+            {trendSummary.hasEnoughData ? (
+              <div className="history-trend-list">
+                {trendSummary.cards.map((card) => (
+                  <div key={card.key} className="history-trend-item">
+                    <div className="history-trend-item-head">
+                      <span className="history-trend-item-title">{card.title}</span>
+                      <span className={"history-trend-pill history-trend-pill--" + card.direction}>
+                        {card.direction[0].toUpperCase() + card.direction.slice(1)}
+                      </span>
+                    </div>
+                    <div className="history-trend-delta">
+                      {card.delta > 0 ? "+" : ""}
+                      {card.delta.toFixed(card.decimals)}
+                      {card.unit}
+                    </div>
+                    <div className="history-trend-text">{card.interpretation}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="history-score-empty">Not enough history to compare recent and previous periods.</div>
+            )}
+          </div>
+
+        <div className="card history-score-card">
+            <div className="history-score-head">
+              <div>
+                <div className="status-label history-score-title">Plant health score</div>
+                <div className="history-score-caption">Based on the {healthScore.windowLabel}</div>
+              </div>
+              {healthScore.hasEnoughData ? (
+                <span className={"history-score-badge history-score-badge--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+                  {healthScore.label}
+                </span>
+              ) : null}
             </div>
-            <div className="history-score-breakdown">
-              <div className="history-score-item">
-                <span className="history-score-item-label">Moisture</span>
-                <span className="history-score-item-value">{healthScore.breakdown.moisture}%</span>
-              </div>
-              <div className="history-score-item">
-                <span className="history-score-item-label">Temperature</span>
-                <span className="history-score-item-value">{healthScore.breakdown.temperature}%</span>
-              </div>
-              <div className="history-score-item">
-                <span className="history-score-item-label">Light</span>
-                <span className="history-score-item-value">{healthScore.breakdown.light}%</span>
-              </div>
-            </div>
-            {lowScoreWarning && <div className="history-score-warning">{lowScoreWarning}</div>}
-          </>
-        ) : (
-          <div className="history-score-empty">Not enough history for this timeframe.</div>
-        )}
+
+            {healthScore.hasEnoughData ? (
+              <>
+                <div className={"history-score-main history-score-main--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+                  <div className="history-score-value">{healthScore.score}</div>
+                  <div className="history-score-out-of">/ 100</div>
+                </div>
+                <div className="history-score-breakdown">
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Moisture</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.moisture}%</span>
+                  </div>
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Temperature</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.temperature}%</span>
+                  </div>
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Light</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.light}%</span>
+                  </div>
+                </div>
+                {lowScoreWarning && <div className="history-score-warning">{lowScoreWarning}</div>}
+              </>
+            ) : (
+              <div className="history-score-empty">Not enough history for this timeframe.</div>
+            )}
+        </div>
       </div>
 
       <div className="history-grid">
