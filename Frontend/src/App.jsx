@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { database } from "./firebase";
 import { ref, onValue, set } from "firebase/database";
+import {
+  calcVPD,
+  computePlantHealthScore,
+  computeTrendSummaryCards,
+  filterRecordsByTimeframe,
+  getMemHistorySliceCount,
+  getLowScoreWarning,
+  normalizeHistoryRecords,
+  recordsToChartData,
+} from "./historyAnalytics";
+import { MOCK_BASIL_HISTORY } from "./mockBasilHistory";
 import "./App.css";
 
 /* ── Icons ─────────────────────────────────────────────────── */
@@ -26,11 +37,6 @@ const I = {
   gauge:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="M12 12 8 8"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M7 17A7 7 0 0 1 8.5 7M17 17a7 7 0 0 0-1.5-10"/></svg>,
   vapor:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 22v-6M8 6c0 2 4 3 4 6s-4 4-4 6M16 6c0 2-4 3-4 6s4 4 4 6"/></svg>,
 };
-
-function calcVPD(temp, humidity) {
-  const svp = 0.6108 * Math.exp(17.27 * temp / (temp + 237.3));
-  return Math.max(0, (1 - humidity / 100) * svp);
-}
 
 /* ── Plants ─────────────────────────────────────────────────── */
 const PLANTS = [
@@ -322,7 +328,7 @@ function DesktopShell(p) {
         </button>
       </aside>
 
-      <main className={"main"+(activeNav==="overview"||activeNav==="history"?" main--fit":"")}>
+      <main className={"main"+(activeNav==="overview"?" main--fit":"")}>
         {activeNav==="overview" && <OverviewTab  {...p}/>}
         {activeNav==="history"  && <HistoryTab   {...p}/>}
         {activeNav==="settings" && <SettingsTab  {...p}/>}
@@ -433,27 +439,39 @@ function OverviewTab(p) {
    History tab — clickable/expandable charts
    ══════════════════════════════════════════════════════════════ */
 function HistoryTab(p) {
-  const { memHistory, fbHistory, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
+  const { memHistory, fbHistory, activePlant, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
-  const TIMEFRAME = { "1h":12,"6h":72,"12h":144,"24h":288,"7d":2016 };
+  const historySource = fbHistory || (activePlant === "basil-1" ? MOCK_BASIL_HISTORY : null);
 
-  const fbData = useMemo(() => {
-    if (!fbHistory) return null;
-    const arr = Object.values(fbHistory);
-    const n = TIMEFRAME[range] ?? 288;
-    const sl = arr.slice(-n);
-    return {
-      moisture:    sl.map(v=>v.soil_moisture??0),
-      temperature: sl.map(v=>v.temperature??0),
-      humidity:    sl.map(v=>v.humidity??0),
-      light:       sl.map(v=>v.light??0),
-      pressure:    sl.map(v=>v.pressure??0),
-      vpd:         sl.map(v=>calcVPD(v.temperature??20, v.humidity??50)),
-    };
-  }, [fbHistory, range]);
+  const normalizedRecords = useMemo(() => normalizeHistoryRecords(historySource), [historySource]);
+
+  const filteredRecords = useMemo(
+    () => filterRecordsByTimeframe(normalizedRecords, range),
+    [normalizedRecords, range]
+  );
+
+  const fbData = useMemo(
+    () => (filteredRecords.length ? recordsToChartData(filteredRecords) : null),
+    [filteredRecords]
+  );
+
+  const healthScore = useMemo(
+    () => computePlantHealthScore(filteredRecords, ps.thresholds, range),
+    [filteredRecords, ps.thresholds, range]
+  );
+
+  const trendSummary = useMemo(
+    () => computeTrendSummaryCards(filteredRecords, ps.thresholds, range),
+    [filteredRecords, ps.thresholds, range]
+  );
+
+  const lowScoreWarning = useMemo(
+    () => getLowScoreWarning(normalizedRecords, ps.thresholds, healthScore.score ?? -1),
+    [normalizedRecords, ps.thresholds, healthScore.score]
+  );
 
   const data = fbData || (() => {
-    const n = TIMEFRAME[range] ?? 96;
+    const n = getMemHistorySliceCount(range);
     return {
       moisture:    memHistory.moisture.slice(-n),
       temperature: memHistory.temperature.slice(-n),
@@ -483,6 +501,80 @@ function HistoryTab(p) {
           {[["1h","1h"],["6h","6h"],["12h","12h"],["24h","24h"],["7d","7d"]].map(([k,l])=>(
             <button key={k} className={"range-pill"+(range===k?" active":"")} onClick={()=>updatePS("timeframe",k)}>{l}</button>
           ))}
+        </div>
+      </div>
+
+      <div className="history-summary-row">
+        <div className="card history-trend-card">
+            <div className="history-trend-head">
+              <div>
+                <div className="status-label history-trend-title">Trend Summary</div>
+                <div className="history-trend-caption">Comparing the recent half of the {healthScore.windowLabel} with the previous half.</div>
+              </div>
+            </div>
+
+            {trendSummary.hasEnoughData ? (
+              <div className="history-trend-list">
+                {trendSummary.cards.map((card) => (
+                  <div key={card.key} className="history-trend-item">
+                    <div className="history-trend-item-head">
+                      <span className="history-trend-item-title">{card.title}</span>
+                      <span className={"history-trend-pill history-trend-pill--" + card.direction}>
+                        {card.direction[0].toUpperCase() + card.direction.slice(1)}
+                      </span>
+                    </div>
+                    <div className="history-trend-delta">
+                      {card.delta > 0 ? "+" : ""}
+                      {card.delta.toFixed(card.decimals)}
+                      {card.unit}
+                    </div>
+                    <div className="history-trend-text">{card.interpretation}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="history-score-empty">Not enough history to compare recent and previous periods.</div>
+            )}
+          </div>
+
+        <div className="card history-score-card">
+            <div className="history-score-head">
+              <div>
+                <div className="status-label history-score-title">Plant health score</div>
+                <div className="history-score-caption">Based on the {healthScore.windowLabel}</div>
+              </div>
+              {healthScore.hasEnoughData ? (
+                <span className={"history-score-badge history-score-badge--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+                  {healthScore.label}
+                </span>
+              ) : null}
+            </div>
+
+            {healthScore.hasEnoughData ? (
+              <>
+                <div className={"history-score-main history-score-main--" + healthScore.label.toLowerCase().replace(/\s+/g, "-")}>
+                  <div className="history-score-value">{healthScore.score}</div>
+                  <div className="history-score-out-of">/ 100</div>
+                </div>
+                <div className="history-score-breakdown">
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Moisture</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.moisture}%</span>
+                  </div>
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Temperature</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.temperature}%</span>
+                  </div>
+                  <div className="history-score-item">
+                    <span className="history-score-item-label">Light</span>
+                    <span className="history-score-item-value">{healthScore.breakdown.light}%</span>
+                  </div>
+                </div>
+                {lowScoreWarning && <div className="history-score-warning">{lowScoreWarning}</div>}
+              </>
+            ) : (
+              <div className="history-score-empty">Not enough history for this timeframe.</div>
+            )}
         </div>
       </div>
 
