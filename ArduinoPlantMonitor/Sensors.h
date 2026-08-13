@@ -9,6 +9,7 @@ struct SensorData {
     float pressure;
     float light;
     float soilMoisture;
+    int soilRaw;
 };
 
 bool initSensors();

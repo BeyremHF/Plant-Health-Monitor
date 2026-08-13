@@ -8,10 +8,7 @@
 #include <time.h>
 
 
-// ==========================
 // WiFi
-// ==========================
-
 void initWiFi() {
 
     WiFi.mode(WIFI_STA);
@@ -51,121 +48,67 @@ bool isWiFiConnected() {
 }
 
 
-// ==========================
-// GET
-// ==========================
-
-String getFirebase(const String& path) {
+String firebaseRequest(
+    const String& method,
+    const String& path,
+    const String& data
+) {
 
     HTTPClient http;
 
-    http.begin(
-        String(FIREBASE_URL) + path
-    );
+    http.begin(String(FIREBASE_URL) + path);
 
-    int code = http.GET();
+    if (method == "PUT" || method == "POST") {
+        http.addHeader("Content-Type", "application/json");
+    }
+
+    int code;
+
+    if (method == "GET") {
+        code = http.GET();
+    }
+    else if (method == "PUT") {
+        code = http.PUT(data);
+    }
+    else if (method == "POST") {
+        code = http.POST(data);
+    }
+    else {
+        http.end();
+        return "";
+    }
+
+    String response = "";
 
     if (code > 0) {
-
-        String response = http.getString();
-
-        http.end();
-
-        return response;
+        response = http.getString();
     }
 
     http.end();
 
-    return "";
+    return response;
 }
 
-
-// ==========================
-// PUT
-// ==========================
-
-bool putFirebase(
-    const String& path,
-    const String& data
-) {
-
-    HTTPClient http;
-
-    http.begin(
-        String(FIREBASE_URL) + path
-    );
-
-    http.addHeader(
-        "Content-Type",
-        "application/json"
-    );
-
-    int code = http.PUT(data);
-
-    http.end();
-
-    return code > 0;
-}
-
-
-// ==========================
-// POST
-// ==========================
-
-bool postFirebase(
-    const String& path,
-    const String& data
-) {
-
-    HTTPClient http;
-
-    http.begin(
-        String(FIREBASE_URL) + path
-    );
-
-    http.addHeader(
-        "Content-Type",
-        "application/json"
-    );
-
-    int code = http.POST(data);
-
-    http.end();
-
-    return code > 0;
-}
-
-
-// ==========================
 // Pump
-// ==========================
-
 bool checkPump(int &duration) {
-
-    String response =
-        getFirebase("/pump.json");
-
+    String response = firebaseRequest("GET", "/pump.json");
     if (response == "") {
         return false;
     }
-
     JsonDocument doc;
-
-    if (deserializeJson(doc, response)) {
+    DeserializationError error =
+        deserializeJson(doc, response);
+    if (error) {
+        Serial.print("Pump JSON error: ");
+        Serial.println(error.c_str());
         return false;
     }
-
-    bool trigger =
-        doc["trigger"] | false;
-
-    if (!trigger) {
-        return false;
+    bool trigger = doc["trigger"] | false;
+    duration = doc["duration"] | 0;
+    if (trigger && duration > 0) {
+        return true;
     }
-
-    duration =
-        doc["duration"] | 3;
-
-    return true;
+    return false;
 }
 
 // Send sensors
@@ -190,6 +133,8 @@ void sendSensorData(
     doc["soil_moisture"] =
         round(data.soilMoisture * 10) / 10.0;
 
+    doc["soil_raw"] = data.soilRaw;
+
     time_t now;
 
     time(&now);
@@ -201,17 +146,17 @@ void sendSensorData(
 
     serializeJson(doc, json);
 
-    // Live sensors
-    putFirebase(
+    // Current sensor values
+    firebaseRequest(
+        "PUT",
         "/sensors.json",
         json
     );
 
     // History
-    postFirebase(
-        "/history/" +
-        String(PLANT_ID) +
-        ".json",
+    firebaseRequest(
+        "POST",
+        "/history/" + String(PLANT_ID) + ".json",
         json
     );
 

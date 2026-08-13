@@ -39,6 +39,8 @@ void setup() {
 
 
 void loop() {
+    int pump_duration;
+
     // WiFi
     if (!isWiFiConnected()) {
         setLED(255, 0, 0);
@@ -47,17 +49,19 @@ void loop() {
 
 
     // Pump
-    int duration;
-    if (checkPump(duration)) {
-        Serial.println("Pump ON");
+    if (checkPump(pump_duration)) {
+        Serial.print("Pump ON for ");
+        Serial.print(pump_duration);
+        Serial.println(" seconds");
         digitalWrite(RELAY_PIN, HIGH);
-        delay(duration * 1000UL);
+        delay(pump_duration * 1000UL);
         digitalWrite(RELAY_PIN, LOW);
         Serial.println("Pump OFF");
-        putFirebase(
-            "/pump/trigger.json",
-            "false"
-        );
+        firebaseRequest(
+        "PUT",
+        "/pump/trigger.json",
+        "false"
+    );
     }
 
     // Sensors every SENSOR_INTERVAL seconds

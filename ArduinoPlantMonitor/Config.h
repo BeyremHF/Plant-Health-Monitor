@@ -27,6 +27,6 @@
 #define SOIL_WET 950
 
 // Timing
-#define SENSOR_INTERVAL 30000UL
+#define SENSOR_INTERVAL 5000UL
 
 #endif

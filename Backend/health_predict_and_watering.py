@@ -8,9 +8,8 @@ import time
 import json
 
 FIREBASE_URL = "https://plant-health-monitor-esp32-default-rtdb.europe-west1.firebasedatabase.app"
-
-MODEL_PATH = "model/plant_health_rf_model.pkl"
-ENCODER_PATH = "model/label_encoder.pkl"
+MODEL_PATH = "Model/plant_health_rf_model.pkl"
+ENCODER_PATH = "Model/label_encoder.pkl"
 SOIL_MOISTURE_THRESHOLD = 40.0
 UPDATE_INTERVAL_SECONDS = 30
 
@@ -37,9 +36,16 @@ def read_firebase():
     response = requests.get(f"{FIREBASE_URL}/.json")
     return response.json() if response.status_code == 200 else None
 
-def set_pump_trigger_true():
-    # This function is called when moisture is low to initiate the cycle
-    requests.put(f"{FIREBASE_URL}/pump/trigger.json", data="true")
+def set_pump_trigger_true(duration):
+    data = {
+        "trigger": True,
+        "duration": duration
+    }
+
+    requests.put(
+        f"{FIREBASE_URL}/pump.json",
+        json=data
+    )
 
 def firebase_to_model_input(firebase_data):
     sensors = firebase_data["sensors"]
@@ -63,13 +69,15 @@ while True:
     firebase_data = read_firebase()
     if firebase_data:
         sensor_input = firebase_to_model_input(firebase_data)
-
+        pump = firebase_data.get("pump", {})
+        pump_trigger = pump.get("trigger", False)
         if sensor_input["Soil_Moisture"] < SOIL_MOISTURE_THRESHOLD:
             print(f"Moisture {sensor_input['Soil_Moisture']}% < {SOIL_MOISTURE_THRESHOLD}%. Setting trigger.")
-            set_pump_trigger_true()
-
+            if not pump_trigger:
+                set_pump_trigger_true(5)
+            else:
+                print("Pump has already been triggering, skip.")
         result = local_inference(sensor_input)
         print("Sensor Input:", sensor_input)
         print("Status:", result)
-
     time.sleep(UPDATE_INTERVAL_SECONDS)

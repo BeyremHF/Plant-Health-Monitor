@@ -8,16 +8,10 @@ void initWiFi();
 
 bool isWiFiConnected();
 
-String getFirebase(const String& path);
-
-bool putFirebase(
+String firebaseRequest(
+    const String& method,
     const String& path,
-    const String& data
-);
-
-bool postFirebase(
-    const String& path,
-    const String& data
+    const String& data = ""
 );
 
 bool checkPump(int &duration);

@@ -6,6 +6,7 @@
 Adafruit_BME280 bme;
 
 bool initSensors() {
+    //I2C
     Wire.begin(I2C_SDA, I2C_SCL);
     // Try BME280 address 0x76
     if (bme.begin(0x76, &Wire)) {
@@ -44,8 +45,8 @@ float readLight() {
 }
 
 // Soil moisture
-float readSoilMoisture() {
-    int raw = analogRead(ADC_PIN);
+float readSoilMoisture(int &raw) {
+    raw = analogRead(ADC_PIN);
     float moisture =
         ((float)(SOIL_DRY - raw) /
          (float)(SOIL_DRY - SOIL_WET)) * 100.0;
@@ -64,7 +65,7 @@ SensorData readSensors() {
     data.light =
         readLight();
     data.soilMoisture =
-        readSoilMoisture();
+        readSoilMoisture(data.soilRaw);
 
     return data;
 }
