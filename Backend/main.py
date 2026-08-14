@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import joblib
 import requests
@@ -27,6 +28,17 @@ app = FastAPI(
     title="Plant Health API",
     description="Backend API for the ESP32 plant health monitoring system",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    # Vite's default dev server ports. Add your deployed frontend origin here too.
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 if not os.path.exists(MODEL_PATH):

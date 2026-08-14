@@ -12,7 +12,10 @@ import {
   recordsToChartData,
 } from "./historyAnalytics";
 import { MOCK_BASIL_HISTORY } from "./mockBasilHistory";
+import { fetchPlantStatus, triggerPumpBackend } from "./api";
 import "./App.css";
+
+const PLANT_STATUS_POLL_MS = 30_000; // matches backend UPDATE_INTERVAL_SECONDS
 
 /* ── Icons ─────────────────────────────────────────────────── */
 const I = {
@@ -142,6 +145,36 @@ function Sensor({ icon, label, value, unit, decimals = 0 }) {
   );
 }
 
+/* ── ML prediction card ────────────────────────────────────── */
+function MLPredictionCard({ prediction, error, loading }) {
+  const health = prediction?.health ?? null;
+  const isHealthy = health ? /healthy/i.test(health) : null;
+
+  let statusText = "—";
+  if (error) statusText = "Unavailable";
+  else if (health) statusText = health;
+  else if (loading) statusText = "Predicting…";
+
+  return (
+    <div className="card ml-card">
+      <div className="status-head">
+        <div>
+          <div className="status-label">ML prediction</div>
+          <div className={"status-value" + (error || isHealthy === false ? " warn" : "")}>
+            {statusText}
+          </div>
+        </div>
+        <span className="ml-card-icon">{I.chip}</span>
+      </div>
+      <div className="ml-card-caption">
+        {error
+          ? "Couldn't reach the prediction backend."
+          : "Random-forest model reading live sensor data."}
+      </div>
+    </div>
+  );
+}
+
 /* ── Chart modal ────────────────────────────────────────────── */
 function ChartModal({ chart, onClose }) {
   useEffect(() => {
@@ -192,6 +225,9 @@ export default function App() {
   const [plantSettings, setPlantSettings] = useState(loadPlantSettings);
   const [reservoirEmpty,setReservoirEmpty]= useState(false);
   const [enlargedChart, setEnlargedChart] = useState(null); // key string or null
+  const [plantStatus,        setPlantStatus]        = useState(null); // { sensors, health, pump }
+  const [plantStatusError,   setPlantStatusError]   = useState(null);
+  const [plantStatusLoading, setPlantStatusLoading] = useState(true);
   const moistureBefore = useRef(null);
   const waterPending   = useRef(false);
 
@@ -243,18 +279,45 @@ export default function App() {
     return onValue(ref(database, `history/${activePlant}`), snap => setFbHistory(snap.val()));
   }, [activePlant]);
 
+  // Poll the FastAPI backend for the ML health prediction (and pump/sensor snapshot).
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPlantStatus = async () => {
+      try {
+        const data = await fetchPlantStatus();
+        if (cancelled) return;
+        setPlantStatus(data);
+        setPlantStatusError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setPlantStatusError(err.message || "Could not reach backend");
+      } finally {
+        if (!cancelled) setPlantStatusLoading(false);
+      }
+    };
+
+    loadPlantStatus();
+    const interval = setInterval(loadPlantStatus, PLANT_STATUS_POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   const notifications = useMemo(() =>
     getNotifications(sensors, ps.thresholds, reservoirEmpty),
     [sensors, ps.thresholds, reservoirEmpty]
   );
   const mood = notifications.length === 0 ? "happy" : notifications.some(n=>n.type==="alert") ? "sad" : "neutral";
 
-  const triggerPump = () => {
+  const triggerPump = async () => {
     moistureBefore.current = sensors?.soil_moisture ?? null;
     waterPending.current = true;
     setReservoirEmpty(false);
-    set(ref(database, "pump/duration"), ps.waterDuration);
-    set(ref(database, "pump/trigger"), true);
+    try {
+      await triggerPumpBackend();
+    } catch (err) {
+      console.error("Failed to trigger pump:", err);
+      waterPending.current = false;
+    }
   };
   const triggerLight = () => set(ref(database, "light/trigger"), true);
 
@@ -269,6 +332,7 @@ export default function App() {
     enlargedChart, setEnlargedChart,
     goToChart,
     plantSettings,
+    plantStatus, plantStatusError, plantStatusLoading,
   };
 
   return (
@@ -350,7 +414,8 @@ const GRAPH_DEFS = [
 ];
 
 function OverviewTab(p) {
-  const { sensors, notifications, mood, memHistory, ps, updatePS, triggerPump, triggerLight, updated, activePlantLabel, goToChart } = p;
+  const { sensors, notifications, mood, memHistory, ps, updatePS, triggerPump, triggerLight, updated, activePlantLabel, goToChart,
+          plantStatus, plantStatusError, plantStatusLoading } = p;
   const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
   const gridCols = activeGraphs.map(()=>"1fr").join(" ");
 
@@ -413,6 +478,8 @@ function OverviewTab(p) {
             <button className="btn-light" onClick={triggerLight}>{I.bulb} Turn on light</button>
           </div>
         </div>
+
+        <MLPredictionCard prediction={plantStatus} error={plantStatusError} loading={plantStatusLoading}/>
       </div>
 
       <div className="bottom-row" style={{ gridTemplateColumns: gridCols }}>
@@ -712,7 +779,9 @@ function SettingsTab(p) {
 
         <div className="card settings-card">
           <div className="settings-section-title">Watering</div>
-          <div className="settings-section-sub">Default duration for the Water now button.</div>
+          <div className="settings-section-sub">
+            Default duration for the Water now button. The backend currently runs a fixed pump duration, so this preference isn't applied yet.
+          </div>
           <div className="duration-pills duration-pills-lg">
             {[1,2,3,5,8].map(d=>(
               <button key={d} className={"duration-pill"+(ps.waterDuration===d?" active":"")} onClick={()=>updatePS("waterDuration",d)}>{d}s</button>
@@ -765,7 +834,8 @@ function SettingSlider({ icon, label, suffix, min, max, step, value, onChange })
    Mobile shell
    ══════════════════════════════════════════════════════════════ */
 function MobileShell(p) {
-  const { sensors, notifications, mood, memHistory, ps, triggerPump, triggerLight, updated, activePlantLabel, theme, setTheme, goToChart } = p;
+  const { sensors, notifications, mood, memHistory, ps, triggerPump, triggerLight, updated, activePlantLabel, theme, setTheme, goToChart,
+          plantStatus, plantStatusError, plantStatusLoading } = p;
   const [tab, setTab] = useState("overview");
   const activeGraphs = GRAPH_DEFS.filter(g => ps.graphs[g.key]);
 
@@ -801,6 +871,7 @@ function MobileShell(p) {
               <button className="btn-water" onClick={triggerPump}>{I.drop} Water now</button>
               <button className="btn-light" onClick={triggerLight}>{I.bulb} Light on</button>
             </div>
+            <MLPredictionCard prediction={plantStatus} error={plantStatusError} loading={plantStatusLoading}/>
             <div className="mobile-sensor-grid">
               {[{icon:I.drop,label:"Moisture",value:sensors?.soil_moisture,unit:"%"},{icon:I.therm,label:"Temp",value:sensors?.temperature,unit:"°C"},{icon:I.sun,label:"Light",value:sensors?.light,unit:"lx"},{icon:I.wind,label:"Humidity",value:sensors?.humidity,unit:"%"}].map(s=>(
                 <div key={s.label} className="mobile-sensor sensor">

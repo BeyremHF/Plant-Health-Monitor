@@ -160,7 +160,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ── Top row ─────────────────────────────────────────────────── */
-.top-row { display: grid; grid-template-columns: 1fr 220px; gap: 20px; }
+.top-row { display: grid; grid-template-columns: 1fr 220px 220px; gap: 20px; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 
@@ -189,6 +189,12 @@ button { font: inherit; cursor: pointer; }
 
 /* ── BMO card ────────────────────────────────────────────────── */
 .bmo-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px 16px; }
+
+.ml-card { display: flex; flex-direction: column; gap: 10px; }
+.ml-card .status-value { font-size: 18px; text-transform: capitalize; }
+.ml-card-icon { color: var(--text-dim); display: flex; align-items: center; flex-shrink: 0; }
+.ml-card-icon svg { width: 18px; height: 18px; }
+.ml-card-caption { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
 .bmo-actions {
   display: flex;
   gap: 0.5rem;
@@ -489,7 +495,7 @@ button { font: inherit; cursor: pointer; }
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 1080px) {
   .shell-desktop { grid-template-columns: 180px 1fr; padding: 16px; gap: 16px; }
-  .top-row     { grid-template-columns: 1fr minmax(180px, 34%); }
+  .top-row     { grid-template-columns: 1fr minmax(160px, 26%) minmax(160px, 26%); }
   .bottom-row  { grid-template-columns: 1fr 1fr minmax(180px, 34%); }
   .history-grid { grid-template-columns: 1fr; }
   .settings-grid{ grid-template-columns: 1fr; }
@@ -687,7 +693,10 @@ html, :root {
 
 /* 5. Cards & top/bottom rows. */
 .card        { padding: min(clamp(1rem, 1.1vw, 1.6rem), 2.5vh); border-radius: 1rem; }
-.top-row     { gap: clamp(0.8rem, 1vw, 1.3rem); grid-template-columns: 1fr minmax(160px, 28%); }
+.top-row     { gap: clamp(0.8rem, 1vw, 1.3rem); grid-template-columns: 1fr minmax(160px, 24%) minmax(160px, 24%); }
+.ml-card     { padding: min(clamp(1rem, 1.1vw, 1.6rem), 2.5vh); justify-content: center; }
+.ml-card .status-value { font-size: min(1.25rem, 3vh); }
+.ml-card-caption { font-size: 0.72rem; }
 .bottom-row  { gap: clamp(0.8rem, 1vw, 1.3rem); }
 
 .status-card { gap: min(1rem, 1.8vh); }
