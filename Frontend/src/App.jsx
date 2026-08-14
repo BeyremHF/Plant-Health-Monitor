@@ -11,7 +11,6 @@ import {
   normalizeHistoryRecords,
   recordsToChartData,
 } from "./historyAnalytics";
-import { MOCK_BASIL_HISTORY } from "./mockBasilHistory";
 import { fetchPlantStatus, triggerPumpBackend } from "./api";
 import "./App.css";
 
@@ -508,7 +507,7 @@ function OverviewTab(p) {
 function HistoryTab(p) {
   const { memHistory, fbHistory, activePlant, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
-  const historySource = fbHistory || (activePlant === "basil-1" ? MOCK_BASIL_HISTORY : null);
+  const historySource = fbHistory;
 
   const normalizedRecords = useMemo(() => normalizeHistoryRecords(historySource), [historySource]);
 
