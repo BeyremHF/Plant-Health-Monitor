@@ -123,7 +123,7 @@ def get_plant_history(plant_id, n):
     response = requests.get(
         f"{FIREBASE_URL}/history/{plant_id}.json",
         params={
-            "orderBy": '"timestamp"',
+            "orderBy": '"$key"',
             "limitToLast": n
         },
         timeout=5
