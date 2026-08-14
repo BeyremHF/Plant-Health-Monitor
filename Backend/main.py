@@ -56,7 +56,6 @@ def predict_plant_health(sensor_data):
 
 
 # Firebase
-
 def read_firebase():
     response = requests.get(
         f"{FIREBASE_URL}/.json",
@@ -66,6 +65,7 @@ def read_firebase():
     return response.json()
 
 def set_pump_trigger(duration):
+    print(f"Manually triggered the pump for {duration}")
     data = {
         "trigger": True,
         "duration": duration
@@ -107,6 +107,34 @@ def get_plant_status():
     }
 
 
+# Plant History
+def get_plant_history(plant_id, n):
+    response = requests.get(
+        f"{FIREBASE_URL}/history/{plant_id}.json",
+        params={
+            "orderBy": '"timestamp"',
+            "limitToLast": n
+        },
+        timeout=5
+    )
+
+    response.raise_for_status()
+
+    history = response.json()
+
+    if not history:
+        return []
+
+    records = list(history.values())
+
+    # Newest first
+    records.sort(
+        key=lambda x: x.get("timestamp", 0),
+        reverse=True
+    )
+
+    return records
+
 # API Endpoints
 @app.get("/")
 def root():
@@ -128,16 +156,28 @@ def plant():
             status_code=500,
             detail=str(e)
         )
+    
+@app.get("/plant/history")
+def plant_history(plant_id: str, n: int = 100):
+    try:
+        return get_plant_history(plant_id, n)
 
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Firebase unavailable: {e}"
+        )
 
 @app.post("/pump")
 def activate_pump():
     try:
         set_pump_trigger(PUMP_DURATION)
+        print(f"Manually triggered ")
         return {
             "success": True,
             "duration": PUMP_DURATION
         }
+    
     except requests.RequestException as e:
         raise HTTPException(
             status_code=503,
@@ -161,7 +201,7 @@ def automatic_watering_loop():
                         f"{SOIL_MOISTURE_THRESHOLD}%"
                     )
                     set_pump_trigger(PUMP_DURATION)
-                    print("Pump triggered.")
+                    print(f"Pump triggered for {PUMP_DURATION}")
                 else:
                     print("Pump already triggered.")
         except Exception as e:
@@ -177,3 +217,5 @@ def start_background_tasks():
     )
     thread.start()
     print("Automatic watering started.")
+
+    

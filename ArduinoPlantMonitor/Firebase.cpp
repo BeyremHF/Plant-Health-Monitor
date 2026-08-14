@@ -22,6 +22,7 @@ void initWiFi() {
         setLED(0, 0, 0);
         delay(500);
         Serial.print(".");
+        Serial.println(WiFi.status());
     }
 
     Serial.println();

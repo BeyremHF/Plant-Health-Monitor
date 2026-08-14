@@ -2,8 +2,8 @@
 #define CONFIG_H
 
 // WiFi
-#define WIFI_SSID     "gigacube-9177A5"
-#define WIFI_PASSWORD "2gLy23tg43n52776"
+#define WIFI_SSID     "pianokill"
+#define WIFI_PASSWORD "pianokill"
 
 // Firebase
 #define FIREBASE_URL \
@@ -27,6 +27,6 @@
 #define SOIL_WET 950
 
 // Timing
-#define SENSOR_INTERVAL 5000UL
+#define SENSOR_INTERVAL 30000UL
 
 #endif

@@ -15,6 +15,13 @@ export function fetchPlantStatus() {
   return request("/plant");
 }
 
+// GET /plant/history?plant_id=basil-1&n=100
+export function fetchPlantHistory(plantId, n = 100) {
+  return request(
+    `/plant/history?plant_id=${encodeURIComponent(plantId)}&n=${n}`
+  );
+}
+
 // POST /pump -> { success, duration }
 export function triggerPumpBackend() {
   return request("/pump", { method: "POST" });
