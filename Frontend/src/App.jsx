@@ -6,15 +6,16 @@ import {
   computePlantHealthScore,
   computeTrendSummaryCards,
   filterRecordsByTimeframe,
+  getHistoryFetchLimit,
   getMemHistorySliceCount,
   getLowScoreWarning,
   normalizeHistoryRecords,
   recordsToChartData,
 } from "./historyAnalytics";
-import { fetchPlantStatus, triggerPumpBackend } from "./api";
+import { fetchPlantHistory, fetchPlantStatus, triggerPumpBackend } from "./api";
 import "./App.css";
 
-const PLANT_STATUS_POLL_MS = 30_000; // matches backend UPDATE_INTERVAL_SECONDS
+const BACKEND_POLL_MS = 30_000; // matches backend UPDATE_INTERVAL_SECONDS
 
 /* ── Icons ─────────────────────────────────────────────────── */
 const I = {
@@ -218,7 +219,8 @@ export default function App() {
   const [sensors,   setSensors]   = useState(null);
   const [lastUpdate,setLastUpdate]= useState(null);
   const [memHistory,setMemHistory]= useState({ moisture:[], temperature:[], humidity:[], light:[], pressure:[], vpd:[] });
-  const [fbHistory, setFbHistory] = useState(null);
+  const [history,   setHistory]   = useState(null);
+  const [historyError, setHistoryError] = useState(null);
   const [activePlant,   setActivePlant]   = useState(PLANTS[0].id);
   const [activeNav,     setActiveNav]     = useState("overview");
   const [plantSettings, setPlantSettings] = useState(loadPlantSettings);
@@ -274,9 +276,27 @@ export default function App() {
     });
   }, []);
 
+  // Poll the FastAPI backend for stored history. It reads the same Firebase
+  // records, but keeps the query/ordering logic on the backend.
   useEffect(() => {
-    return onValue(ref(database, `history/${activePlant}`), snap => setFbHistory(snap.val()));
-  }, [activePlant]);
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      try {
+        const records = await fetchPlantHistory(activePlant, getHistoryFetchLimit(ps.timeframe));
+        if (cancelled) return;
+        setHistory(records);
+        setHistoryError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setHistoryError(err.message || "Could not load history");
+      }
+    };
+
+    loadHistory();
+    const interval = setInterval(loadHistory, BACKEND_POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activePlant, ps.timeframe]);
 
   // Poll the FastAPI backend for the ML health prediction (and pump/sensor snapshot).
   useEffect(() => {
@@ -297,7 +317,7 @@ export default function App() {
     };
 
     loadPlantStatus();
-    const interval = setInterval(loadPlantStatus, PLANT_STATUS_POLL_MS);
+    const interval = setInterval(loadPlantStatus, BACKEND_POLL_MS);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
@@ -324,7 +344,7 @@ export default function App() {
   const updated = lastUpdate ? "Updated " + timeAgo(lastUpdate) : "Waiting…";
 
   const shared = {
-    sensors, notifications, mood, memHistory, fbHistory,
+    sensors, notifications, mood, memHistory, history, historyError,
     ps, updatePS, triggerPump, triggerLight,
     updated, activePlant, setActivePlant, activePlantLabel,
     theme, setTheme,
@@ -505,18 +525,17 @@ function OverviewTab(p) {
    History tab — clickable/expandable charts
    ══════════════════════════════════════════════════════════════ */
 function HistoryTab(p) {
-  const { memHistory, fbHistory, activePlant, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
+  const { memHistory, history, historyError, activePlant, activePlantLabel, ps, updatePS, enlargedChart, setEnlargedChart } = p;
   const range = ps.timeframe;
-  const historySource = fbHistory;
 
-  const normalizedRecords = useMemo(() => normalizeHistoryRecords(historySource), [historySource]);
+  const normalizedRecords = useMemo(() => normalizeHistoryRecords(history), [history]);
 
   const filteredRecords = useMemo(
     () => filterRecordsByTimeframe(normalizedRecords, range),
     [normalizedRecords, range]
   );
 
-  const fbData = useMemo(
+  const storedData = useMemo(
     () => (filteredRecords.length ? recordsToChartData(filteredRecords) : null),
     [filteredRecords]
   );
@@ -536,7 +555,7 @@ function HistoryTab(p) {
     [normalizedRecords, ps.thresholds, healthScore.score]
   );
 
-  const data = fbData || (() => {
+  const data = storedData || (() => {
     const n = getMemHistorySliceCount(range);
     return {
       moisture:    memHistory.moisture.slice(-n),
@@ -569,6 +588,12 @@ function HistoryTab(p) {
           ))}
         </div>
       </div>
+
+      {historyError && (
+        <div className="history-error">
+          Couldn't load stored history from the backend — showing live readings only.
+        </div>
+      )}
 
       <div className="history-summary-row">
         <div className="card history-trend-card">

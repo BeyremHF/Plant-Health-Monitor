@@ -45,10 +45,11 @@ function toFiniteNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-export function normalizeHistoryRecords(fbHistory) {
-  if (!fbHistory || typeof fbHistory !== "object") return [];
+// Accepts either the backend's array of records or a raw Firebase keyed object.
+export function normalizeHistoryRecords(rawHistory) {
+  if (!rawHistory || typeof rawHistory !== "object") return [];
 
-  return Object.values(fbHistory)
+  return Object.values(rawHistory)
     .map((record) => {
       if (!record || typeof record !== "object") return null;
 
@@ -112,6 +113,14 @@ export function getMemHistorySliceCount(timeframe) {
 
   // The live in-memory history stores one sample roughly every 30 seconds.
   return Math.max(1, Math.floor(timeframeSeconds / 30));
+}
+
+// How many stored records to ask the backend for so the timeframe stays full.
+export function getHistoryFetchLimit(timeframe) {
+  const timeframeSeconds = TIMEFRAME_TO_SECONDS[timeframe] ?? TIMEFRAME_TO_SECONDS["24h"];
+
+  // Devices push one record roughly every 30 seconds; add headroom for jitter.
+  return Math.ceil((timeframeSeconds / 30) * 1.2);
 }
 
 function ratioToPercent(ratio) {

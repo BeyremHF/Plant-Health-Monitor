@@ -343,6 +343,14 @@ button { font: inherit; cursor: pointer; }
   font-weight: 600;
 }
 .history-score-empty { font-size: 14px; color: var(--text-muted); }
+.history-error {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn-on-bg);
+  font-size: 13px;
+  font-weight: 600;
+}
 
 .history-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 .history-card { display: flex; flex-direction: column; padding: 18px; gap: 10px; min-height: 240px; }
