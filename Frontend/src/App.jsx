@@ -312,7 +312,7 @@ export default function App() {
     waterPending.current = true;
     setReservoirEmpty(false);
     try {
-      await triggerPumpBackend();
+      await triggerPumpBackend(ps.waterDuration);
     } catch (err) {
       console.error("Failed to trigger pump:", err);
       waterPending.current = false;
@@ -779,7 +779,7 @@ function SettingsTab(p) {
         <div className="card settings-card">
           <div className="settings-section-title">Watering</div>
           <div className="settings-section-sub">
-            Default duration for the Water now button. The backend currently runs a fixed pump duration, so this preference isn't applied yet.
+            Duration used when you tap the Water now button.
           </div>
           <div className="duration-pills duration-pills-lg">
             {[1,2,3,5,8].map(d=>(

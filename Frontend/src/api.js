@@ -23,6 +23,10 @@ export function fetchPlantHistory(plantId, n = 100) {
 }
 
 // POST /pump -> { success, duration }
-export function triggerPumpBackend() {
-  return request("/pump", { method: "POST" });
+export function triggerPumpBackend(duration) {
+  return request("/pump", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(duration != null ? { duration } : {}),
+  });
 }

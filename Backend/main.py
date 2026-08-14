@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 import pandas as pd
 import joblib
 import requests
@@ -21,6 +22,8 @@ ENCODER_PATH = "Model/label_encoder.pkl"
 SOIL_MOISTURE_THRESHOLD = 40.0
 PUMP_DURATION = 5
 UPDATE_INTERVAL_SECONDS = 30
+MIN_PUMP_DURATION = 1
+MAX_PUMP_DURATION = 30
 
 
 # FastAPI
@@ -40,6 +43,14 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+class PumpRequest(BaseModel):
+    duration: int = Field(
+        default=PUMP_DURATION,
+        ge=MIN_PUMP_DURATION,
+        le=MAX_PUMP_DURATION,
+    )
+
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
@@ -169,13 +180,13 @@ def plant_history(plant_id: str, n: int = 100):
         )
 
 @app.post("/pump")
-def activate_pump():
+def activate_pump(pump_request: PumpRequest = PumpRequest()):
     try:
-        set_pump_trigger(PUMP_DURATION)
-        print(f"Manually triggered ")
+        set_pump_trigger(pump_request.duration)
+        print(f"Manually triggered for {pump_request.duration}s")
         return {
             "success": True,
-            "duration": PUMP_DURATION
+            "duration": pump_request.duration
         }
     
     except requests.RequestException as e:
@@ -217,5 +228,3 @@ def start_background_tasks():
     )
     thread.start()
     print("Automatic watering started.")
-
-    
