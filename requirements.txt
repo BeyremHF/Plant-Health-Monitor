@@ -2,3 +2,6 @@ pandas
 joblib
 scikit-learn
 requests
+fastapi 
+uvicorn
+joblib
