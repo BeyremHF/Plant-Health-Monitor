@@ -4,10 +4,10 @@
 #include "Led.h"
 #include "Sensors.h"
 #include "Firebase.h"
-
+#include "Display.h"
 
 unsigned long lastSensorSend = 0;
-
+Display display;
 
 void setup() {
 
@@ -22,8 +22,13 @@ void setup() {
     initLED();
 
     // Relay
-    pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW);
+    pinMode(RELAY_PUMP_PIN, OUTPUT);
+    digitalWrite(RELAY_PUMP_PIN, LOW);
+
+    pinMode(RELAY_LIGHT_PIN, OUTPUT);
+    digitalWrite(RELAY_LIGHT_PIN, LOW);
+    //Display
+    display.begin();
 
     // Sensors
     while (!initSensors()) {
@@ -35,6 +40,8 @@ void setup() {
     // WiFi
     initWiFi();
     Serial.println("System ready!");
+    display.showHealthy();
+
 }
 
 
@@ -53,16 +60,22 @@ void loop() {
         Serial.print("Pump ON for ");
         Serial.print(pump_duration);
         Serial.println(" seconds");
-        digitalWrite(RELAY_PIN, HIGH);
+        display.showPumping(pump_duration);
+
+        digitalWrite(RELAY_PUMP_PIN, HIGH);
         delay(pump_duration * 1000UL);
-        digitalWrite(RELAY_PIN, LOW);
+        digitalWrite(RELAY_PUMP_PIN, LOW);
         Serial.println("Pump OFF");
         firebaseRequest(
         "PUT",
         "/pump/trigger.json",
-        "false"
-    );
+        "false");
     }
+
+    digitalWrite(RELAY_LIGHT_PIN, HIGH);
+    delay(3000);
+    digitalWrite(RELAY_LIGHT_PIN, LOW);
+
 
     // Sensors every SENSOR_INTERVAL seconds
     if (
@@ -75,6 +88,7 @@ void loop() {
             readSensors();
         // Blue LED while sending
         setLED(0, 0, 255);
+        display.showSensors(data);
         sendSensorData(data);
         setLED(0, 0, 0);
         lastSensorSend = millis();

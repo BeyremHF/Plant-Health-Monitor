@@ -14,7 +14,8 @@
 // Pins
 #define LED_PIN    48
 #define ADC_PIN     1
-#define RELAY_PIN   2
+#define RELAY_PUMP_PIN   2
+#define RELAY_LIGHT_PIN 4
 
 #define I2C_SDA     8
 #define I2C_SCL     9

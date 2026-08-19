@@ -807,7 +807,7 @@ function SettingsTab(p) {
             Duration used when you tap the Water now button.
           </div>
           <div className="duration-pills duration-pills-lg">
-            {[1,2,3,5,8].map(d=>(
+            {[1,2,3,4,5].map(d=>(
               <button key={d} className={"duration-pill"+(ps.waterDuration===d?" active":"")} onClick={()=>updatePS("waterDuration",d)}>{d}s</button>
             ))}
           </div>
