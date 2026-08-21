@@ -27,7 +27,16 @@
 #define SOIL_DRY 2650
 #define SOIL_WET 950
 
+// Plant state, from soil moisture (%)
+#define MOISTURE_HEALTHY_MIN   40.0
+#define MOISTURE_MODERATE_MIN  25.0
+
 // Timing
 #define SENSOR_INTERVAL 30000UL
+
+// Display
+#define SENSOR_SCREEN_MS 4000UL
+#define SCAN_SCREEN_MS   1500UL
+#define LOOP_INTERVAL    2000UL
 
 #endif
